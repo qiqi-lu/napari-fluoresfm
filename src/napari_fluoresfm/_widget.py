@@ -33,7 +33,16 @@ from typing import TYPE_CHECKING
 
 from magicgui import magic_factory
 from magicgui.widgets import CheckBox, Container, create_widget
-from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
+from qtpy.QtWidgets import (
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QPushButton,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 from skimage.util import img_as_float
 
 if TYPE_CHECKING:
@@ -127,3 +136,101 @@ class ExampleQWidget(QWidget):
 
     def _on_click(self):
         print("napari has", len(self.viewer.layers), "layers")
+
+
+# ------------------------------------------------------------------------------
+
+
+class Widget_preprocess(QGroupBox):
+    """
+    Preprocess box for preprocessing the data.
+    """
+
+    def __init__(self):
+        super().__init__()
+        grid_layout = QGridLayout()
+        self.setLayout(grid_layout)
+
+
+class Widget_log(QGroupBox):
+    """
+    Log box for showing log info.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        grid_layout = QGridLayout()
+        self.setLayout(grid_layout)
+
+        self.clean_btn = QPushButton("CLEAN")
+        grid_layout.addWidget(self.clean_btn, 0, 0, 1, 1)
+
+        self.log_box = QTextEdit()
+        self.log_box.setReadOnly(True)
+        grid_layout.addWidget(self.log_box, 1, 0, 4, 4)
+
+        self.clean_btn.clicked.connect(self.clean_text)
+
+    def add_text(self, value):
+        self.log_box.append(value)
+
+    def clean_text(self):
+        self.log_box.clean()
+
+
+class Widget_train(QGroupBox):
+    def __init__(self, logger):
+        super().__init__()
+
+        self.logger = logger
+        self.params = {}
+
+        grid_layout = QGridLayout()
+        self.setLayout(grid_layout)
+
+
+class Widget_train_predict(QWidget):
+    """
+    Tha main widget consists of four pages:
+    - `preprocess` page: preprocess the data.
+    - `train` page: train the model.
+    - `predict` page: predict the image.
+    - `log` page: show the log info.
+    """
+
+    def __init__(self, viewer: napari.Viewer):
+        super().__init__()
+
+        self._widget = {}
+
+        # preprocess page ------------------------------------------------------
+        page_preprocess = QWidget()
+        page_preprocess_layout = QVBoxLayout()
+        page_preprocess.setLayout(page_preprocess_layout)
+
+        # log page -------------------------------------------------------------
+        page_logger = Widget_log()
+
+        # train page -----------------------------------------------------------
+        page_train = QWidget()
+        page_train_layout = QVBoxLayout()
+        page_train.setLayout(page_train_layout)
+        page_train_layout.addWidget(QPushButton("Train"))
+
+        # predict page ---------------------------------------------------------
+        page_predict = QWidget()
+        page_predict_layout = QVBoxLayout()
+        page_predict.setLayout(page_predict_layout)
+        page_predict_layout.addWidget(QPushButton("Predict"))
+
+        # ----------------------------------------------------------------------
+        tab = QTabWidget()
+        tab.addTab(page_train, "Train")
+        tab.addTab(page_predict, "Predict")
+        tab.addTab(page_logger, "Log")
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(tab)
+        self.setLayout(layout)
