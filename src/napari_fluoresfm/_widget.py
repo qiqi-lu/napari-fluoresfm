@@ -199,7 +199,7 @@ class Widget_train_predict(QWidget):
     - `log` page: show the log info.
     """
 
-    def __init__(self, viewer: napari.Viewer):
+    def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
 
         self._widget = {}
