@@ -136,8 +136,8 @@ class CrossAttention(nn.Module):
     This falls-back to self-attention when conditional embeddings are not specified.
     """
 
-    # use_flash_attention: bool = False
-    use_flash_attention: bool = True
+    use_flash_attention: bool = False
+    # use_flash_attention: bool = True
 
     def __init__(
         self,

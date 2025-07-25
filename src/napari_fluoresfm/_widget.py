@@ -31,125 +31,327 @@ Replace code below according to your needs.
 
 from typing import TYPE_CHECKING
 
-from magicgui import magic_factory
-from magicgui.widgets import CheckBox, Container, create_widget
 from qtpy.QtWidgets import (
     QGridLayout,
     QGroupBox,
-    QHBoxLayout,
     QPushButton,
     QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
-from skimage.util import img_as_float
+
+import napari_fluoresfm.base_widgts as basew
+from napari_fluoresfm.fluoresfm.preprocess.embdedding import text_embdedding
+from napari_fluoresfm.fluoresfm.preprocess.patching import patch_image
+from napari_fluoresfm.fluoresfm.test.predict import predict
 
 if TYPE_CHECKING:
     import napari
+import os
+import time
+
+# # Uses the `autogenerate: true` flag in the plugin manifest
+# # to indicate it should be wrapped as a magicgui to autogenerate
+# # a widget.
+# def threshold_autogenerate_widget(
+#     img: "napari.types.ImageData",
+#     threshold: "float",
+# ) -> "napari.types.LabelsData":
+#     return img_as_float(img) > threshold
 
 
-# Uses the `autogenerate: true` flag in the plugin manifest
-# to indicate it should be wrapped as a magicgui to autogenerate
-# a widget.
-def threshold_autogenerate_widget(
-    img: "napari.types.ImageData",
-    threshold: "float",
-) -> "napari.types.LabelsData":
-    return img_as_float(img) > threshold
+# # the magic_factory decorator lets us customize aspects of our widget
+# # we specify a widget type for the threshold parameter
+# # and use auto_call=True so the function is called whenever
+# # the value of a parameter changes
+# @magic_factory(
+#     threshold={"widget_type": "FloatSlider", "max": 1}, auto_call=True
+# )
+# def threshold_magic_widget(
+#     img_layer: "napari.layers.Image", threshold: "float"
+# ) -> "napari.types.LabelsData":
+#     return img_as_float(img_layer.data) > threshold
 
 
-# the magic_factory decorator lets us customize aspects of our widget
-# we specify a widget type for the threshold parameter
-# and use auto_call=True so the function is called whenever
-# the value of a parameter changes
-@magic_factory(
-    threshold={"widget_type": "FloatSlider", "max": 1}, auto_call=True
-)
-def threshold_magic_widget(
-    img_layer: "napari.layers.Image", threshold: "float"
-) -> "napari.types.LabelsData":
-    return img_as_float(img_layer.data) > threshold
+# # if we want even more control over our widget, we can use
+# # magicgui `Container`
+# class ImageThreshold(Container):
+#     def __init__(self, viewer: "napari.viewer.Viewer"):
+#         super().__init__()
+#         self._viewer = viewer
+#         # use create_widget to generate widgets from type annotations
+#         self._image_layer_combo = create_widget(
+#             label="Image", annotation="napari.layers.Image"
+#         )
+#         self._threshold_slider = create_widget(
+#             label="Threshold", annotation=float, widget_type="FloatSlider"
+#         )
+#         self._threshold_slider.min = 0
+#         self._threshold_slider.max = 1
+#         # use magicgui widgets directly
+#         self._invert_checkbox = CheckBox(text="Keep pixels below threshold")
+
+#         # connect your own callbacks
+#         self._threshold_slider.changed.connect(self._threshold_im)
+#         self._invert_checkbox.changed.connect(self._threshold_im)
+
+#         # append into/extend the container with your widgets
+#         self.extend(
+#             [
+#                 self._image_layer_combo,
+#                 self._threshold_slider,
+#                 self._invert_checkbox,
+#             ]
+#         )
+
+#     def _threshold_im(self):
+#         image_layer = self._image_layer_combo.value
+#         if image_layer is None:
+#             return
+
+#         image = img_as_float(image_layer.data)
+#         name = image_layer.name + "_thresholded"
+#         threshold = self._threshold_slider.value
+#         if self._invert_checkbox.value:
+#             thresholded = image < threshold
+#         else:
+#             thresholded = image > threshold
+#         if name in self._viewer.layers:
+#             self._viewer.layers[name].data = thresholded
+#         else:
+#             self._viewer.add_labels(thresholded, name=name)
 
 
-# if we want even more control over our widget, we can use
-# magicgui `Container`
-class ImageThreshold(Container):
-    def __init__(self, viewer: "napari.viewer.Viewer"):
-        super().__init__()
-        self._viewer = viewer
-        # use create_widget to generate widgets from type annotations
-        self._image_layer_combo = create_widget(
-            label="Image", annotation="napari.layers.Image"
-        )
-        self._threshold_slider = create_widget(
-            label="Threshold", annotation=float, widget_type="FloatSlider"
-        )
-        self._threshold_slider.min = 0
-        self._threshold_slider.max = 1
-        # use magicgui widgets directly
-        self._invert_checkbox = CheckBox(text="Keep pixels below threshold")
+# class ExampleQWidget(QWidget):
+#     # your QWidget.__init__ can optionally request the napari viewer instance
+#     # use a type annotation of 'napari.viewer.Viewer' for any parameter
+#     def __init__(self, viewer: "napari.viewer.Viewer"):
+#         super().__init__()
+#         self.viewer = viewer
 
-        # connect your own callbacks
-        self._threshold_slider.changed.connect(self._threshold_im)
-        self._invert_checkbox.changed.connect(self._threshold_im)
+#         btn = QPushButton("Click me!")
+#         btn.clicked.connect(self._on_click)
 
-        # append into/extend the container with your widgets
-        self.extend(
-            [
-                self._image_layer_combo,
-                self._threshold_slider,
-                self._invert_checkbox,
-            ]
-        )
+#         self.setLayout(QHBoxLayout())
+#         self.layout().addWidget(btn)
 
-    def _threshold_im(self):
-        image_layer = self._image_layer_combo.value
-        if image_layer is None:
-            return
-
-        image = img_as_float(image_layer.data)
-        name = image_layer.name + "_thresholded"
-        threshold = self._threshold_slider.value
-        if self._invert_checkbox.value:
-            thresholded = image < threshold
-        else:
-            thresholded = image > threshold
-        if name in self._viewer.layers:
-            self._viewer.layers[name].data = thresholded
-        else:
-            self._viewer.add_labels(thresholded, name=name)
-
-
-class ExampleQWidget(QWidget):
-    # your QWidget.__init__ can optionally request the napari viewer instance
-    # use a type annotation of 'napari.viewer.Viewer' for any parameter
-    def __init__(self, viewer: "napari.viewer.Viewer"):
-        super().__init__()
-        self.viewer = viewer
-
-        btn = QPushButton("Click me!")
-        btn.clicked.connect(self._on_click)
-
-        self.setLayout(QHBoxLayout())
-        self.layout().addWidget(btn)
-
-    def _on_click(self):
-        print("napari has", len(self.viewer.layers), "layers")
+#     def _on_click(self):
+#         print("napari has", len(self.viewer.layers), "layers")
 
 
 # ------------------------------------------------------------------------------
+class Worker_patching(basew.WorkerBase):
+    def __init__(self, observer=None):
+        super().__init__(observer=observer)
+
+    def run(self):
+        self.observer.notify("Patching start...")
+        res = patch_image(
+            self.params_dict,
+            observer=self.observer,
+            stop_flag=self.stop_flag,
+        )
+        if res == 1:
+            self.observer.notify("Run Finished.")
+        else:
+            self.observer.notify("Run Failed.")
+        self.finish_signal.emit()
 
 
-class Widget_preprocess(QGroupBox):
+class Widget_patching(basew.WidgetBase):
     """
-    Preprocess box for preprocessing the data.
+    Box for patching the data.
     """
 
-    def __init__(self):
-        super().__init__()
-        grid_layout = QGridLayout()
+    def __init__(self, logger=None):
+        super().__init__(logger=logger, title="IMAGE PATCHING")
+        self._worker = Worker_patching(self._observer)
+
+        grid_layout = QVBoxLayout()
         self.setLayout(grid_layout)
+        # path -----------------------------------------------------------------
+        group_path = QGroupBox("PATH")
+        group_path_layout = QVBoxLayout()
+        group_path.setLayout(group_path_layout)
+
+        self.path_raw_box = basew.DirectorySelectWidget(
+            "Dataset", "Select the folder of raw data"
+        )
+        self.path_index_file_box = basew.FileSelectWidget(
+            "Index file", "Select the index file"
+        )
+
+        group_path_layout.addWidget(self.path_raw_box)
+        group_path_layout.addWidget(self.path_index_file_box)
+        # parameters -----------------------------------------------------------
+        group_params = QGroupBox("PARAMETERS")
+        group_params_layout = QVBoxLayout()
+        group_params.setLayout(group_params_layout)
+        self.patch_size_box = basew.ParamsBox(
+            "Patch size", spintype="spin", vmin=1, vmax=10000, vinit=64, step=4
+        )
+        self.patch_stride_box = basew.ParamsBox(
+            "Patch stride",
+            spintype="spin",
+            vmin=1,
+            vmax=10000,
+            vinit=64,
+            step=4,
+        )
+        self.norm_p_low_box = basew.ParamsBox(
+            "Normalization (low)",
+            spintype="doublespin",
+            vmin=0,
+            vmax=1,
+            vinit=0.03,
+            step=0.001,
+        )
+        self.norm_p_high_box = basew.ParamsBox(
+            "Normalization (high)",
+            spintype="doublespin",
+            vmin=0,
+            vmax=1,
+            vinit=0.995,
+            step=0.001,
+        )
+
+        group_params_layout.addWidget(self.patch_size_box)
+        group_params_layout.addWidget(self.patch_stride_box)
+        group_params_layout.addWidget(self.norm_p_low_box)
+        group_params_layout.addWidget(self.norm_p_high_box)
+        # run ------------------------------------------------------------------
+        group_run = QGroupBox("RUN")
+        group_run_layout = QGridLayout()
+        group_run.setLayout(group_run_layout)
+        group_run_layout.addWidget(self.run_btn, 0, 0, 1, 2)
+        group_run_layout.addWidget(self.stop_btn, 0, 2, 1, 1)
+        group_run_layout.addWidget(self.progress_bar, 1, 0, 1, 3)
+
+        # add to layout -------------------------------------------------------
+        grid_layout.addWidget(group_path)
+        grid_layout.addWidget(group_params)
+        grid_layout.addWidget(group_run)
+        # grid_layout.addStretch()
+
+        self.connect()
+
+    def get_params(self):
+        self.params.update(
+            {
+                "path_dataset": self.path_raw_box.get_path(),
+                "path_index_file": self.path_index_file_box.get_path(),
+                "patch_size": self.patch_size_box.get_value(),
+                "step_size": self.patch_stride_box.get_value(),
+                "norm_p_low": self.norm_p_low_box.get_value(),
+                "norm_p_high": self.norm_p_high_box.get_value(),
+            }
+        )
+
+        num_images = self.get_num_images()
+        self.progress_bar.setMaximum(num_images)
+
+    def get_num_images(self):
+        path_index_file = self.path_index_file_box.get_path()
+        if not os.path.exists(path_index_file):
+            return 0
+        if not path_index_file.endswith(".txt"):
+            return 0
+        with open(path_index_file) as f:
+            lines = f.read().splitlines()
+        return len(lines)
+
+
+class Worker_embedding(basew.WorkerBase):
+    def __init__(self, observer=None):
+        super().__init__(observer=observer)
+
+    def run(self):
+        self.observer.notify("Embedding strat...")
+        res = text_embdedding(
+            self.params_dict,
+            observer=self.observer,
+            stop_flag=self.stop_flag,
+        )
+        if res == 1:
+            self.observer.notify("Run Finished.")
+        else:
+            self.observer.notify("Run Failed.")
+        self.finish_signal.emit()
+
+
+class Widget_embedding(basew.WidgetBase):
+    """
+    Box for embedding the data.
+    """
+
+    def __init__(self, logger=None):
+        super().__init__(logger=logger, title="EMBEDDING")
+        self._worker = Worker_embedding(self._observer)
+        grid_layout = QVBoxLayout()
+        self.setLayout(grid_layout)
+        # path -----------------------------------------------------------------
+        group_path = QGroupBox("PATH")
+        group_path_layout = QVBoxLayout()
+        group_path.setLayout(group_path_layout)
+        self.path_excel_box = basew.FileSelectWidget(
+            "Excel", "Select the excel file"
+        )
+        self.path_embedder_box = basew.DirectorySelectWidget(
+            "Embedder", "Select the folder of embedder"
+        )
+        self.path_output_box = basew.DirectorySelectWidget(
+            "Output", "Select the folder of output"
+        )
+        group_path_layout.addWidget(self.path_excel_box)
+        group_path_layout.addWidget(self.path_output_box)
+        group_path_layout.addWidget(self.path_embedder_box)
+        # parameters -----------------------------------------------------------
+        group_params = QGroupBox("PARAMETERS")
+        group_params_layout = QVBoxLayout()
+        group_params.setLayout(group_params_layout)
+        self.device_box = basew.DeviceBox("Device")
+        self.context_length_box = basew.ParamsBox(
+            "Context length",
+            spintype="spin",
+            vmin=1,
+            vmax=10000,
+            vinit=160,
+            step=4,
+        )
+        self.text_type_box = basew.ComboSelectBox(
+            "Text type",
+            # options=["ALL", "TSpixel", "TSmicro", "TS", "T"],
+            options=["ALL", "TS", "T"],
+        )
+        group_params_layout.addWidget(self.device_box)
+        group_params_layout.addWidget(self.context_length_box)
+        group_params_layout.addWidget(self.text_type_box)
+        # run ------------------------------------------------------------------
+        group_run = QGroupBox("RUN")
+        group_run_layout = QGridLayout()
+        group_run.setLayout(group_run_layout)
+        group_run_layout.addWidget(self.run_btn, 0, 0, 1, 2)
+        group_run_layout.addWidget(self.stop_btn, 0, 2, 1, 1)
+        group_run_layout.addWidget(self.progress_bar, 1, 0, 1, 3)
+        # add to layout -------------------------------------------------------
+        grid_layout.addWidget(group_path)
+        grid_layout.addWidget(group_params)
+        grid_layout.addWidget(group_run)
+        # grid_layout.addStretch()
+        self.connect()
+
+    def get_params(self):
+        self.params.update(
+            {
+                "path_dataset_xlx": self.path_excel_box.get_path(),
+                "path_output_txt": self.path_output_box.get_path(),
+                "path_embedder": self.path_embedder_box.get_path(),
+                "device": self.device_box.get_value(),
+                "context_length": self.context_length_box.get_value(),
+                "text_type": self.text_type_box.get_value(),
+            }
+        )
 
 
 class Widget_log(QGroupBox):
@@ -163,31 +365,370 @@ class Widget_log(QGroupBox):
         grid_layout = QGridLayout()
         self.setLayout(grid_layout)
 
-        self.clean_btn = QPushButton("CLEAN")
-        grid_layout.addWidget(self.clean_btn, 0, 0, 1, 1)
+        self.clear_btn = QPushButton("clear")
+        grid_layout.addWidget(self.clear_btn, 0, 0, 1, 1)
 
         self.log_box = QTextEdit()
         self.log_box.setReadOnly(True)
         grid_layout.addWidget(self.log_box, 1, 0, 4, 4)
 
-        self.clean_btn.clicked.connect(self.clean_text)
+        self.clear_btn.clicked.connect(self.clear_text)
 
     def add_text(self, value):
         self.log_box.append(value)
 
-    def clean_text(self):
-        self.log_box.clean()
+    def clear_text(self):
+        self.log_box.clear()
 
 
-class Widget_train(QGroupBox):
-    def __init__(self, logger):
-        super().__init__()
+def tmp_function(params, observer: basew.Observer = None, stop_flag=None):
+    print("tmp_function")
+    for i in range(100):
+        observer.progress(i)
+        time.sleep(1)
+        observer.notify(f"tmp_function {i}")
+        if stop_flag[0]:
+            break
+    return 0, "None error"
 
-        self.logger = logger
-        self.params = {}
 
-        grid_layout = QGridLayout()
+class Worker_predict(basew.WorkerBase):
+    def __init__(self, observer=None):
+        super().__init__(observer=observer)
+
+    def run(self):
+        self.observer.notify("Prediction strat ...")
+        res = predict(
+            self.params_dict,
+            stop_flag=self.stop_flag,
+            observer=self.observer,
+        )
+
+        if res == 1:
+            self.observer.notify("Run Finished.")
+        else:
+            self.observer.notify("Run Failed.")
+        self.finish_signal.emit()
+
+
+class Widget_predict(basew.WidgetBase):
+    def __init__(self, logger=None):
+        super().__init__(logger=logger)
+
+        self._worker = Worker_predict(self._observer)
+
+        grid_layout = QVBoxLayout()
         self.setLayout(grid_layout)
+
+        # path -----------------------------------------------------------------
+        group_path = QGroupBox("PATH")
+        group_path_layout = QVBoxLayout()
+        group_path.setLayout(group_path_layout)
+
+        self.path_input_box = basew.DirectorySelectWidget(
+            "Input", "Select the input folder"
+        )
+        self.path_input_index_box = basew.FileSelectWidget(
+            "Index file", "Select the index file"
+        )
+        self.path_output_box = basew.DirectorySelectWidget(
+            "Output", "Select the output folder"
+        )
+        self.path_embedder_box = basew.DirectorySelectWidget(
+            "Embedder", "Select the folder save the embedder"
+        )
+        self.path_checkpoint_box = basew.FileSelectWidget(
+            "Checkpoint", "Select the checkpoint of model"
+        )
+        group_path_layout.addWidget(self.path_input_box)
+        group_path_layout.addWidget(self.path_input_index_box)
+        group_path_layout.addWidget(self.path_output_box)
+        group_path_layout.addWidget(self.path_embedder_box)
+        group_path_layout.addWidget(self.path_checkpoint_box)
+
+        # parameters -----------------------------------------------------------
+        group_params = QGroupBox("PARAMETERS")
+        group_params_layout = QVBoxLayout()
+        group_params.setLayout(group_params_layout)
+
+        self.scale_factor_box = basew.ParamsBox(
+            "Input interpolate (nearest)",
+            spintype="spin",
+            vmin=1,
+            vmax=10,
+            vinit=1,
+            step=1,
+        )
+        self.batchsize_box = basew.ParamsBox("Batch size", "spin", 1, 1000, 4)
+        self.patchsize_box = basew.ParamsBox(
+            "Patch size", "spin", 256, 10000, 64, step=4
+        )
+        self.device_box = basew.DeviceBox(label="Device")
+
+        group_params_layout.addWidget(self.device_box)
+        group_params_layout.addWidget(self.scale_factor_box)
+        group_params_layout.addWidget(self.batchsize_box)
+        group_params_layout.addWidget(self.patchsize_box)
+
+        # text -----------------------------------------------------------------
+        group_text = QGroupBox("TEXT")
+        group_text_layout = QVBoxLayout()
+        group_text.setLayout(group_text_layout)
+        self.text_task_box = basew.TextBox(
+            "Task: (e.g., deconvolution)", box_type="LE"
+        )
+        self.text_task_box.set_text("deconvolution")
+        self.text_sample_box = basew.TextBox(
+            "sample: (e.g., fixed COS-7 cell line)", box_type="LE"
+        )
+        self.text_sample_box.set_text("fixed COS-7 cell line")
+        self.text_structure_box = basew.TextBox(
+            "structure: (e.g., microtubule)", box_type="LE"
+        )
+        self.text_structure_box.set_text("microtubule")
+        self.text_fluor_box = basew.TextBox(
+            "fluorescence indicator: (e.g., mEmerald (GFP))", box_type="LE"
+        )
+        self.text_fluor_box.set_text("mEmerald (GFP)")
+
+        # ----------------------------------------------------------------------
+        group_input = QGroupBox("INPUT")
+        group_input_layout = QVBoxLayout()
+        group_input.setLayout(group_input_layout)
+
+        self.text_in_micro_box = basew.TextBox(
+            "microsocpy: (e.g., wide-field microsocpe)", box_type="LE"
+        )
+        self.text_in_micro_box.set_text("wide-field microsocpe")
+        self.text_in_micro_params_box = basew.TextBox(
+            "microsocpy params: (e.g., with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3)",
+            box_type="TE",
+        )
+        self.text_in_micro_params_box.set_text(
+            "with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3"
+        )
+        self.text_in_px_box = basew.TextBox(
+            "pixel size: (e.g., 62.6 x 62.6 nm)", box_type="LE"
+        )
+        self.text_in_px_box.set_text("62.6 x 62.6 nm")
+
+        group_input_layout.addWidget(self.text_in_micro_box)
+        group_input_layout.addWidget(self.text_in_micro_params_box)
+        group_input_layout.addWidget(self.text_in_px_box)
+        # ----------------------------------------------------------------------
+
+        group_output = QGroupBox("OUTPUT")
+        group_output_layout = QVBoxLayout()
+        group_output.setLayout(group_output_layout)
+
+        self.text_out_micro_box = basew.TextBox(
+            "microsocpy: (e.g., linear structured illumination microscope)",
+            box_type="LE",
+        )
+        self.text_out_micro_box.set_text(
+            "linear structured illumination microscope"
+        )
+
+        self.text_out_micro_params_box = basew.TextBox(
+            "microsocpy params: (e.g., with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3)",
+            box_type="TE",
+        )
+        self.text_out_micro_params_box.set_text(
+            "with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3"
+        )
+
+        self.text_out_px_box = basew.TextBox(
+            "pixel size: (e.g., 62.6 x 62.6 nm)", box_type="LE"
+        )
+        self.text_out_px_box.set_text("62.6 x 62.6 nm")
+
+        group_output_layout.addWidget(self.text_out_micro_box)
+        group_output_layout.addWidget(self.text_out_micro_params_box)
+        group_output_layout.addWidget(self.text_out_px_box)
+        # ----------------------------------------------------------------------
+
+        group_text_layout.addWidget(self.text_task_box)
+        group_text_layout.addWidget(self.text_sample_box)
+        group_text_layout.addWidget(self.text_structure_box)
+        group_text_layout.addWidget(self.text_fluor_box)
+        group_text_layout.addWidget(group_input)
+        group_text_layout.addWidget(group_output)
+
+        # progress bar and run button ------------------------------------------
+        group_run = QGroupBox("Run")
+        group_run_layout = QGridLayout()
+        group_run.setLayout(group_run_layout)
+        group_run_layout.addWidget(self.run_btn, 0, 0, 1, 2)
+        group_run_layout.addWidget(self.stop_btn, 0, 2, 1, 1)
+        group_run_layout.addWidget(self.progress_bar, 1, 0, 1, 3)
+
+        # ----------------------------------------------------------------------
+        grid_layout.addWidget(group_path)
+        grid_layout.addWidget(group_params)
+        grid_layout.addWidget(group_text)
+        grid_layout.addWidget(group_run)
+        grid_layout.addStretch()
+
+        # ----------------------------------------------------------------------
+        self.connect()
+
+    def get_text(self):
+        text = "Task: {}; sample: {}; structure: {}; fluorescence indicator: {}; input microscope: {}; input pixel size: {}; target microscope: {}; target pixel size: {}.".format(
+            self.text_task_box.get_text(),
+            self.text_sample_box.get_text(),
+            self.text_structure_box.get_text(),
+            self.text_fluor_box.get_text(),
+            f"{self.text_in_micro_box.get_text()} {self.text_in_micro_params_box.get_text()}",
+            self.text_in_px_box.get_text(),
+            f"{self.text_out_micro_box.get_text()} {self.text_out_micro_params_box.get_text()}",
+            self.text_out_px_box.get_text(),
+        )
+        return text
+
+    def get_params(self):
+        self.params.update(
+            {
+                "path_input": self.path_input_box.get_path(),
+                "path_input_index": self.path_input_index_box.get_path(),
+                "path_output": self.path_output_box.get_path(),
+                "path_embedder": self.path_embedder_box.get_path(),
+                "path_checkpoint": self.path_checkpoint_box.get_path(),
+                "sf_lr": self.scale_factor_box.get_value(),
+                "batch_size": self.batchsize_box.get_value(),
+                "patch_size": self.patchsize_box.get_value(),
+                "device": self.device_box.get_value(),
+                "text": self.get_text(),
+            }
+        )
+
+        self.progress_bar.setMaximum(self.get_num_images())
+
+        self.log("-" * 20)
+        self.log("Parameters:")
+        # print the params
+        for key, value in self.params.items():
+            self.log(f"{key}: {value}")
+        self.log("-" * 20)
+
+    def get_num_images(self):
+        # get the number of images
+        path_input_index = self.params["path_input_index"]
+        if not os.path.exists(path_input_index):
+            return 0
+        if not path_input_index.endswith(".txt"):
+            return 0
+        with open(path_input_index) as f:
+            lines = f.read().splitlines()
+        return len(lines)
+
+
+class Worker_train(basew.WorkerBase):
+    def __init__(self, observer=None):
+        super().__init__(observer=observer)
+
+    def run(self):
+        self.observer.notify("Training strat...")
+        res = 0
+        # res, e = train(self.params_dict, observer=self.observer)
+        res, e = tmp_function(
+            self.params_dict,
+            observer=self.observer,
+            stop_flag=self.stop_flag,
+        )
+        if res == 1:
+            self.observer.notify("Train Finished.")
+        else:
+            self.observer.notify("Train Failed.")
+        self.finish_signal.emit()
+
+
+class Widget_train(basew.WidgetBase):
+    def __init__(self, logger=None):
+        super().__init__(logger=logger)
+        self._worker = Worker_train(self._observer)
+
+        grid_layout = QVBoxLayout()
+        self.setLayout(grid_layout)
+        # path -----------------------------------------------------------------
+        group_path = QGroupBox("PATH")
+        group_path_layout = QGridLayout()
+        group_path.setLayout(group_path_layout)
+        self.path_excel_box = basew.FileSelectWidget(
+            "Information Excel", "Select the information excel"
+        )
+
+        self.path_checkpoint_box = basew.DirectorySelectWidget(
+            "Checkpoint", "Select the folder save the checkpoint"
+        )
+        group_path_layout.addWidget(self.path_excel_box, 0, 1, 1, 1)
+        group_path_layout.addWidget(self.path_checkpoint_box, 1, 1, 1, 1)
+
+        # parameters -----------------------------------------------------------
+        group_params = QGroupBox("PARAMETERS")
+        group_params_layout = QGridLayout()
+        group_params.setLayout(group_params_layout)
+
+        self.device_box = basew.DeviceBox(label="Device")
+        self.batchsize_box = basew.ParamsBox("Batch size", "spin", 1, 1000, 16)
+        self.epochs_box = basew.ParamsBox("Epochs", "spin", 1, 10000, 1)
+        self.lr_box = basew.ParamsBox(
+            "Learning rate",
+            "doublespin",
+            0,
+            1,
+            vinit=0.00001,
+            decimals=8,
+            step=0.000001,
+        )
+        self.decay_box = basew.ParamsBox(
+            "Decay (every iter)", "spin", 1, 1000000, vinit=10000, step=100
+        )
+
+        group_params_layout.addWidget(self.device_box, 0, 1, 1, 1)
+        group_params_layout.addWidget(self.batchsize_box, 1, 1, 1, 1)
+        group_params_layout.addWidget(self.epochs_box, 2, 1, 1, 1)
+        group_params_layout.addWidget(self.lr_box, 3, 1, 1, 1)
+        group_params_layout.addWidget(self.decay_box, 4, 1, 1, 1)
+
+        # progress bar and run button ------------------------------------------
+        group_run = QGroupBox("Run")
+        group_run_layout = QGridLayout()
+        group_run.setLayout(group_run_layout)
+        group_run_layout.addWidget(self.run_btn, 0, 0, 1, 2)
+        group_run_layout.addWidget(self.stop_btn, 0, 2, 1, 1)
+        group_run_layout.addWidget(self.progress_bar, 1, 0, 1, 3)
+
+        # ----------------------------------------------------------------------
+        grid_layout.addWidget(group_path)
+        grid_layout.addWidget(group_params)
+        grid_layout.addWidget(group_run)
+        grid_layout.addStretch()
+        # ----------------------------------------------------------------------
+        self.connect()
+
+    def get_params(self):
+        self.params.update(
+            {
+                "path_excel": self.path_excel_box.get_path(),
+                "path_checkpoint": self.path_checkpoint_box.get_path(),
+                "batchsize": self.batchsize_box.get_value(),
+                "epochs": self.epochs_box.get_value(),
+                "device": self.device_box.get_value(),
+                "lr": self.lr_box.get_value(),
+                "decay": self.decay_box.get_value(),
+            }
+        )
+
+        # self.progress_bar.setMaximum(self.get_num_images())
+        self.log("-" * 20)
+        self.log("Parameters:")
+        # print the params
+        for key, value in self.params.items():
+            self.log(f"{key}: {value}")
+        self.log("-" * 20)
+
+    def get_num_patches(self):
+        return 100
 
 
 class Widget_train_predict(QWidget):
@@ -201,31 +742,32 @@ class Widget_train_predict(QWidget):
 
     def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
-
-        self._widget = {}
+        # log page -------------------------------------------------------------
+        page_logger = Widget_log()
 
         # preprocess page ------------------------------------------------------
         page_preprocess = QWidget()
         page_preprocess_layout = QVBoxLayout()
         page_preprocess.setLayout(page_preprocess_layout)
-
-        # log page -------------------------------------------------------------
-        page_logger = Widget_log()
+        page_preprocess_layout.addWidget(Widget_patching(page_logger))
+        page_preprocess_layout.addWidget(Widget_embedding(page_logger))
+        page_preprocess_layout.addStretch()
 
         # train page -----------------------------------------------------------
         page_train = QWidget()
         page_train_layout = QVBoxLayout()
         page_train.setLayout(page_train_layout)
-        page_train_layout.addWidget(QPushButton("Train"))
+        page_train_layout.addWidget(Widget_train(page_logger))
 
         # predict page ---------------------------------------------------------
         page_predict = QWidget()
         page_predict_layout = QVBoxLayout()
         page_predict.setLayout(page_predict_layout)
-        page_predict_layout.addWidget(QPushButton("Predict"))
+        page_predict_layout.addWidget(Widget_predict(page_logger))
 
         # ----------------------------------------------------------------------
         tab = QTabWidget()
+        tab.addTab(page_preprocess, "Preprocess")
         tab.addTab(page_train, "Train")
         tab.addTab(page_predict, "Predict")
         tab.addTab(page_logger, "Log")
@@ -234,3 +776,13 @@ class Widget_train_predict(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(tab)
         self.setLayout(layout)
+
+
+if __name__ == "__main__":
+    import napari
+
+    viewer = napari.Viewer()
+    dock, widget = viewer.window.add_plugin_dock_widget(
+        plugin_name="napari-fluoresfm", widget_name="Main Widget"
+    )
+    napari.run()
