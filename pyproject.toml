@@ -42,8 +42,6 @@ dependencies = [
     "open_clip_torch",
     "pandas",
     "os",
-    "collections",
-    "time",
     "pytorch_msssim",
     "math",
     "datetime",
