@@ -390,20 +390,20 @@ def ZNCC(img_true, img_test):
     return zncc
 
 
-def intensity_balance(img_true, img_test, axis=None):
-    # tensor to numpy array
-    img_true = tensor_to_array(img_true)
-    img_test = tensor_to_array(img_test)
+# def intensity_balance(img_true, img_test, axis=None):
+#     # tensor to numpy array
+#     img_true = tensor_to_array(img_true)
+#     img_test = tensor_to_array(img_test)
 
-    keepdims = False if axis is None else True
+#     keepdims = False if axis is None else True
 
-    a = np.mean(img_true, axis=axis, keepdims=keepdims) / np.mean(
-        img_test, axis=axis, keepdims=keepdims
-    )
+#     a = np.mean(img_true, axis=axis, keepdims=keepdims) / np.mean(
+#         img_test, axis=axis, keepdims=keepdims
+#     )
 
-    img_test_rescale = img_test * a
+#     img_test_rescale = img_test * a
 
-    return img_test_rescale
+#     return img_test_rescale
 
 
 def linear_transform(img_true, img_test, axis=None):
@@ -423,7 +423,7 @@ def linear_transform(img_true, img_test, axis=None):
     img_true = tensor_to_array(img_true).astype(np.float32)
     img_test = tensor_to_array(img_test).astype(np.float32)
 
-    keepdims = False if axis is None else True
+    keepdims = axis is not None
 
     # calculate mean and std
     mean_true = np.mean(img_true, axis=axis, keepdims=keepdims)
