@@ -45,8 +45,6 @@ dependencies = [
     "pytorch_msssim",
     "math",
     "datetime",
-    "json",
-    "typing",
 ]
 
 [project.optional-dependencies]
