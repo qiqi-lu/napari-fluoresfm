@@ -41,10 +41,7 @@ dependencies = [
     "scipy",
     "open_clip_torch",
     "pandas",
-    "os",
     "pytorch_msssim",
-    "math",
-    "datetime",
 ]
 
 [project.optional-dependencies]
