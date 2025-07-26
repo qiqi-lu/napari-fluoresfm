@@ -42,6 +42,7 @@ dependencies = [
     "open_clip_torch",
     "pandas",
     "pytorch_msssim",
+    "pydicom",
 ]
 
 [project.optional-dependencies]
