@@ -27,10 +27,6 @@ var/
 # files
 checkpoints/
 example/
-_tests/
-_reader.py
-_sample_data.py
-_writer.py
 
 
 # PyInstaller
