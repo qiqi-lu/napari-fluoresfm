@@ -37,8 +37,7 @@ def predict(params_in: dict, stop_flag=None, observer=None):
     # defualt parameters
     params = {
         "enable_amp": True,
-        # "complie_model": True,
-        "complie_model": False,
+        "complie_model": True,
         "embedder": "biomedclip",
         "model_name": "unet_sd_c",
         "in_channels": 1,
@@ -247,10 +246,15 @@ def predict(params_in: dict, stop_flag=None, observer=None):
 
     # --------------------------------------------------------------------------
     # PREDICT
+    if observer is not None:
+        observer.prograss_total(num_sample_eva)
+
     for i_sample in range(num_sample_eva):
         if stop_flag[0]:
             pout("Stop prediction.")
             return 0
+        if observer is not None:
+            observer.progress(i_sample + 1)
 
         pout("-" * 30)
         sample_filename = filenames[i_sample]

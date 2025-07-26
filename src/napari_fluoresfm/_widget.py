@@ -32,6 +32,7 @@ Replace code below according to your needs.
 from typing import TYPE_CHECKING
 
 from qtpy.QtWidgets import (
+    QCheckBox,
     QGridLayout,
     QGroupBox,
     QPushButton,
@@ -48,7 +49,6 @@ from napari_fluoresfm.fluoresfm.test.predict import predict
 
 if TYPE_CHECKING:
     import napari
-import os
 import time
 
 # # Uses the `autogenerate: true` flag in the plugin manifest
@@ -247,19 +247,6 @@ class Widget_patching(basew.WidgetBase):
                 "norm_p_high": self.norm_p_high_box.get_value(),
             }
         )
-
-        num_images = self.get_num_images()
-        self.progress_bar.setMaximum(num_images)
-
-    def get_num_images(self):
-        path_index_file = self.path_index_file_box.get_path()
-        if not os.path.exists(path_index_file):
-            return 0
-        if not path_index_file.endswith(".txt"):
-            return 0
-        with open(path_index_file) as f:
-            lines = f.read().splitlines()
-        return len(lines)
 
 
 class Worker_embedding(basew.WorkerBase):
@@ -461,7 +448,7 @@ class Widget_predict(basew.WidgetBase):
         )
         self.batchsize_box = basew.ParamsBox("Batch size", "spin", 1, 1000, 4)
         self.patchsize_box = basew.ParamsBox(
-            "Patch size", "spin", 256, 10000, 64, step=4
+            "Patch size", "spin", 64, 10000, 256, step=4
         )
         self.device_box = basew.DeviceBox(label="Device")
 
@@ -601,8 +588,6 @@ class Widget_predict(basew.WidgetBase):
             }
         )
 
-        self.progress_bar.setMaximum(self.get_num_images())
-
         self.log("-" * 20)
         self.log("Parameters:")
         # print the params
@@ -610,30 +595,15 @@ class Widget_predict(basew.WidgetBase):
             self.log(f"{key}: {value}")
         self.log("-" * 20)
 
-    def get_num_images(self):
-        # get the number of images
-        path_input_index = self.params["path_input_index"]
-        if not os.path.exists(path_input_index):
-            return 0
-        if not path_input_index.endswith(".txt"):
-            return 0
-        with open(path_input_index) as f:
-            lines = f.read().splitlines()
-        return len(lines)
-
 
 class Worker_train(basew.WorkerBase):
     def __init__(self, observer=None):
         super().__init__(observer=observer)
 
     def run(self):
-        self.observer.notify("Training strat...")
-        res = 0
-        # res, e = train(self.params_dict, observer=self.observer)
-        res, e = tmp_function(
-            self.params_dict,
-            observer=self.observer,
-            stop_flag=self.stop_flag,
+        self.observer.notify("Training strat ...")
+        res = tmp_function(
+            self.params_dict, observer=self.observer, stop_flag=self.stop_flag
         )
         if res == 1:
             self.observer.notify("Train Finished.")
@@ -651,26 +621,37 @@ class Widget_train(basew.WidgetBase):
         self.setLayout(grid_layout)
         # path -----------------------------------------------------------------
         group_path = QGroupBox("PATH")
-        group_path_layout = QGridLayout()
+        group_path_layout = QVBoxLayout()
         group_path.setLayout(group_path_layout)
         self.path_excel_box = basew.FileSelectWidget(
             "Information Excel", "Select the information excel"
         )
-
-        self.path_checkpoint_box = basew.DirectorySelectWidget(
-            "Checkpoint", "Select the folder save the checkpoint"
+        self.path_text_embedding_box = basew.DirectorySelectWidget(
+            "Text embedding", "Select the folder of text embedding"
         )
-        group_path_layout.addWidget(self.path_excel_box, 0, 1, 1, 1)
-        group_path_layout.addWidget(self.path_checkpoint_box, 1, 1, 1, 1)
+        self.path_checkpoint_from_box = basew.FileSelectWidget(
+            "Checkpoint (load from)", "Select the checkpoint to load"
+        )
+        self.finetune_checkbox = QCheckBox("Finetune")
+        self.finetune_checkbox.setChecked(False)
+
+        self.path_checkpoint_to_box = basew.DirectorySelectWidget(
+            "Checkpoint (save to)", "Select the folder to save the checkpoint"
+        )
+        group_path_layout.addWidget(self.path_excel_box)
+        group_path_layout.addWidget(self.path_text_embedding_box)
+        group_path_layout.addWidget(self.path_checkpoint_from_box)
+        group_path_layout.addWidget(self.finetune_checkbox)
+        group_path_layout.addWidget(self.path_checkpoint_to_box)
 
         # parameters -----------------------------------------------------------
         group_params = QGroupBox("PARAMETERS")
-        group_params_layout = QGridLayout()
+        group_params_layout = QVBoxLayout()
         group_params.setLayout(group_params_layout)
 
         self.device_box = basew.DeviceBox(label="Device")
         self.batchsize_box = basew.ParamsBox("Batch size", "spin", 1, 1000, 16)
-        self.epochs_box = basew.ParamsBox("Epochs", "spin", 1, 10000, 1)
+        self.epochs_box = basew.ParamsBox("Epochs", "spin", 1, 10000, 2)
         self.lr_box = basew.ParamsBox(
             "Learning rate",
             "doublespin",
@@ -681,14 +662,38 @@ class Widget_train(basew.WidgetBase):
             step=0.000001,
         )
         self.decay_box = basew.ParamsBox(
-            "Decay (every iter)", "spin", 1, 1000000, vinit=10000, step=100
+            "Decay (every iter)", "spin", 1, 1000000, vinit=100000, step=100
+        )
+        self.val_every_iter_box = basew.ParamsBox(
+            "Validation (every iter)",
+            "spin",
+            0,
+            1000000,
+            vinit=10000,
+            step=100,
+        )
+        self.frac_val_box = basew.ParamsBox(
+            "Validation (fraction)",
+            "doublespin",
+            0,
+            1,
+            vinit=0.01,
+            step=0.01,
+        )
+        self.save_every_iter_box = basew.ParamsBox(
+            "Save Model (every iter)",
+            "spin",
+            0,
+            1000000,
+            vinit=5000,
+            step=100,
         )
 
-        group_params_layout.addWidget(self.device_box, 0, 1, 1, 1)
-        group_params_layout.addWidget(self.batchsize_box, 1, 1, 1, 1)
-        group_params_layout.addWidget(self.epochs_box, 2, 1, 1, 1)
-        group_params_layout.addWidget(self.lr_box, 3, 1, 1, 1)
-        group_params_layout.addWidget(self.decay_box, 4, 1, 1, 1)
+        group_params_layout.addWidget(self.device_box)
+        group_params_layout.addWidget(self.batchsize_box)
+        group_params_layout.addWidget(self.epochs_box)
+        group_params_layout.addWidget(self.lr_box)
+        group_params_layout.addWidget(self.decay_box)
 
         # progress bar and run button ------------------------------------------
         group_run = QGroupBox("Run")
@@ -710,25 +715,27 @@ class Widget_train(basew.WidgetBase):
         self.params.update(
             {
                 "path_excel": self.path_excel_box.get_path(),
-                "path_checkpoint": self.path_checkpoint_box.get_path(),
-                "batchsize": self.batchsize_box.get_value(),
-                "epochs": self.epochs_box.get_value(),
-                "device": self.device_box.get_value(),
-                "lr": self.lr_box.get_value(),
-                "decay": self.decay_box.get_value(),
+                "path_text_embedding": self.path_text_embedding_box.get_path(),
+                "path_checkpoint_from": self.path_checkpoint_from_box.get_path(),
+                "path_checkpoint_to": self.path_checkpoint_to_box.get_path(),
+                "batch_size": self.batchsize_box.get_value(),
+                "num_epochs": self.epochs_box.get_value(),
+                "device_id": self.device_box.get_value(),
+                "learning_rate": self.lr_box.get_value(),
+                "decay_every_iter": self.decay_box.get_value(),
+                "val_every_iter": self.val_every_iter_box.get_value(),
+                "frac_val": self.frac_val_box.get_value(),
+                "save_every_iter": self.save_every_iter_box.get_value(),
+                "finetune": self.finetune_checkbox.isChecked(),
             }
         )
 
-        # self.progress_bar.setMaximum(self.get_num_images())
         self.log("-" * 20)
-        self.log("Parameters:")
+        self.log("Parameters (input):")
         # print the params
         for key, value in self.params.items():
             self.log(f"{key}: {value}")
         self.log("-" * 20)
-
-    def get_num_patches(self):
-        return 100
 
 
 class Widget_train_predict(QWidget):

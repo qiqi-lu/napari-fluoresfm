@@ -17,21 +17,22 @@ def patch_image(params: dict, stop_flag=None, observer=None):
     """
     pout = observer.notify if observer is not None else print
 
+    # check input parameters ---------------------------------------------------
     path_dataset = params["path_dataset"]
+    path_index_file = params["path_index_file"]
+
     if not os.path.exists(path_dataset):
-        pout(f"Error: path_dataset does not exist: {path_dataset}")
+        pout(f"Error: path_dataset does not exist:\n {path_dataset}")
         return 1
 
     if path_dataset is not list:
         path_dataset = [path_dataset]
 
-    path_index_file = params["path_index_file"]
-
     if not os.path.exists(path_index_file):
-        pout(f"Error: path_index_file does not exist: {path_index_file}")
+        pout(f"Error: path_index_file does not exist:\n {path_index_file}")
         return 0
     if not path_index_file.endswith(".txt"):
-        pout(f"Error: path_index_file must be a txt file: {path_index_file}")
+        pout(f"Error: path_index_file must be a txt file:\n {path_index_file}")
         return 0
 
     pl = params["norm_p_low"]
@@ -88,12 +89,10 @@ def patch_image(params: dict, stop_flag=None, observer=None):
 
         # ----------------------------------------------------------------------
         with open(save_to_txt, "w") as out_file:
-            pbar = tqdm.tqdm(
-                total=num_samples,
-                desc="Patching",
-                ncols=100,
-                disable=observer is not None,
-            )
+            pbar = tqdm.tqdm(total=num_samples, desc="Patching", ncols=80)
+            if observer is not None:
+                observer.prograss_total(num_samples)
+
             for i_sample in range(num_samples):
 
                 if observer is not None:

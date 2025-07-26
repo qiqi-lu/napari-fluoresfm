@@ -88,7 +88,8 @@ class ComboSelectBox(QWidget):
         layout.addWidget(QLabel(label))
 
         self.combo_box = QComboBox()
-        self.combo_box.addItems(options)
+        if options is not None:
+            self.combo_box.addItems(options)
         layout.addWidget(self.combo_box)
 
     def get_value(self):
@@ -208,6 +209,7 @@ class ParamsBox(QWidget):
 
 class Observer(QObject):
     progress_signal = Signal(int)
+    progrss_total_signal = Signal(int)
     notify_signal = Signal(str)
 
     def __init__(self):
@@ -218,6 +220,9 @@ class Observer(QObject):
 
     def notify(self, message):
         self.notify_signal.emit(message)
+
+    def prograss_total(self, value):
+        self.progrss_total_signal.emit(value)
 
 
 class WorkerBase(QObject):
@@ -248,7 +253,7 @@ class WidgetBase(QGroupBox):
             self.setTitle(title)
 
         self.logger = logger
-        self.params = None
+        self.params = {}
 
         self._thread = QThread()
         self._observer = Observer()
@@ -271,9 +276,13 @@ class WidgetBase(QGroupBox):
 
         self._observer.progress_signal.connect(self._on_progress)
         self._observer.notify_signal.connect(self.log)
+        self._observer.progrss_total_signal.connect(self.set_progress_total)
 
     def _on_progress(self, value):
         self.progress_bar.setValue(value)
+
+    def set_progress_total(self, value):
+        self.progress_bar.setMaximum(value)
 
     def log(self, value):
         print(value)

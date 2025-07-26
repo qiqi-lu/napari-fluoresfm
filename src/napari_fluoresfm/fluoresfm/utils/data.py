@@ -9,6 +9,250 @@ import numpy as np
 import pydicom
 import skimage.io as io
 import torch
+from torch.utils.data import Dataset
+
+
+class RotFlip:
+    """
+    Rotation and flip.
+    Input a image and a random number, and do a specific operation on the image according to the random number.
+    """
+
+    def __init__(self):
+        pass
+
+    def __call__(self, img, random_num):
+        """
+        ### Inputs:
+        - `img` : numpy array, image. [B, C, H, W].
+        - `random_num` : int, random number within [0, 6].
+        ### Returns:
+        - `img` : numpy array, augmented image. [B, C, H, W].
+        """
+        if random_num == 1:
+            img = torch.rot90(img, k=1, dims=[1, 2])
+        elif random_num == 2:
+            img = torch.rot90(img, k=2, dims=[1, 2])
+        elif random_num == 3:
+            img = torch.rot90(img, k=3, dims=[1, 2])
+        elif random_num == 4:
+            img = torch.flip(img, dims=[1])
+        elif random_num == 5:
+            img = torch.flip(img, dims=[2])
+        elif random_num == 6:
+            img = torch.flip(img, dims=[1, 2])
+        else:
+            pass
+        return img
+
+
+class Dataset_iit(Dataset):
+    """output (image, image, text), (image, image, task) or (image, image)"""
+
+    def __init__(
+        self,
+        dim,
+        path_index_file,  # image name file
+        path_dataset_lr,
+        path_dataset_hr,
+        dataset_index,
+        path_dataset_text_embedding=None,
+        transform=None,
+        scale_factor_lr=1,
+        scale_factor_hr=1,
+        task=None,
+        output_type="ii-text",
+        use_clean_data=False,
+        rotflip=False,
+        clip=None,
+        **kwargs,
+    ):
+        super().__init__()
+        self.dim = dim
+        self.transform = transform
+        self.output_type = output_type
+        self.rotflip = rotflip
+        self.clip = clip
+
+        if self.rotflip:
+            self.Rot = RotFlip()
+            self.random_generator = torch.Generator()
+            self.random_generator.manual_seed(7)
+
+        # string to list of string
+        if not isinstance(path_dataset_lr, list):
+            path_dataset_lr = [path_dataset_lr]
+        if not isinstance(path_dataset_hr, list):
+            path_dataset_hr = [path_dataset_hr]
+        if not isinstance(path_index_file, list):
+            path_index_file = [path_index_file]
+
+        # collect all the path of image
+        num_dataset = len(path_dataset_lr)
+        print("-" * 90)
+        print(f"- Number of datastes: {num_dataset}")
+
+        self.path_sample_lr, self.path_sample_hr = [], []
+        self.scale_factor_lr, self.scale_factor_hr = [], []
+
+        if output_type == "ii-text":
+            self.path_sample_text = []
+        if output_type == "ii-task":
+            self.sampel_task = []
+
+        for i in range(num_dataset):
+            sf_lr = scale_factor_lr[i]
+            sf_hr = scale_factor_hr[i]
+            path_index = path_index_file[i]
+            path_lr = path_dataset_lr[i]
+            path_hr = path_dataset_hr[i]
+
+            if os.name == "posix":
+                path_index = win2linux(path_index)
+                path_lr = win2linux(path_lr)
+                path_hr = win2linux(path_hr)
+                if path_dataset_text_embedding is not None:
+                    path_dataset_text_embedding = win2linux(
+                        path_dataset_text_embedding
+                    )
+
+            # load all the file names in current dataset
+            if not use_clean_data:
+                sample_names = read_txt(os.path.join(path_index))
+            else:
+                sample_names = read_txt(
+                    os.path.join(path_index.split(".")[0] + "_clean.txt")
+                )
+
+            # connect the path of images
+            for sample_name in sample_names:
+                self.scale_factor_lr.append(sf_lr)
+                self.scale_factor_hr.append(sf_hr)
+
+                # low-resolution images
+                self.path_sample_lr.append(os.path.join(path_lr, sample_name))
+
+                # high-resolution images
+                self.path_sample_hr.append(os.path.join(path_hr, sample_name))
+
+                if output_type == "ii-text":
+                    # text of images
+                    self.path_sample_text.append(
+                        os.path.join(
+                            path_dataset_text_embedding,
+                            str(dataset_index[i]) + ".npy",
+                        )
+                    )
+                if output_type == "ii-task":
+                    # collect task of each sample
+                    if task[i] == "sr":
+                        id_task = 1
+                    elif task[i] == "dn":
+                        id_task = 2
+                    elif task[i] == "iso":
+                        id_task = 3
+                    elif task[i] == "dcv":
+                        id_task = 4
+                    self.sampel_task.append(id_task)
+
+            if len(path_dataset_lr) <= 3:
+                print(f"- Dataset:\n- LR: {path_lr}\n- HR: {path_hr}")
+                print(f"- Number of samples: {len(sample_names)}")
+
+        print(f"- total number of samples: {self.__len__()}")
+        print("-" * 90)
+
+        if self.rotflip:
+            num_sample = self.__len__()
+            self.random_num = torch.randint(
+                low=0,
+                high=6,
+                size=(num_sample,),
+                generator=self.random_generator,
+            )
+
+    def __len__(self):
+        return len(self.path_sample_lr)
+
+    def to3d(self, x):
+        # convert 2D image with 3D shape.
+        if len(x.shape) == 3:
+            x = torch.unsqueeze(x, axis=-3)
+        return x
+
+    def interp(self, x, y):
+        x, y = torch.unsqueeze(x, dim=0), torch.unsqueeze(y, dim=0)
+
+        if self.dim == 2:
+            x_inter = torch.nn.functional.interpolate(
+                x, size=(y.shape[-2], y.shape[-1]), mode="nearest"
+            )
+        if self.dim == 3:
+            x_inter = torch.nn.functional.interpolate(
+                x, size=(y.shape[-3], y.shape[-2], y.shape[-1]), mode="nearest"
+            )
+        return x_inter[0]
+
+    def interp_sf(self, x, sf):
+        x = torch.unsqueeze(x, dim=0)
+        if sf > 0:
+            x_inter = torch.nn.functional.interpolate(
+                x, scale_factor=sf, mode="nearest"
+            )
+        if sf < 0:
+            x_inter = torch.nn.functional.avg_pool2d(
+                x, kernel_size=-sf, stride=-sf
+            )
+        return x_inter[0]
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        # low-resolution image
+        img_lr = read_image(img_path=self.path_sample_lr[idx])
+        img_lr = torch.tensor(img_lr)
+
+        # high-resolution image
+        img_hr = read_image(img_path=self.path_sample_hr[idx])
+        img_hr = torch.tensor(img_hr)
+
+        # text
+        if self.output_type == "ii-text":
+            text = np.load(self.path_sample_text[idx])
+            text = torch.tensor(text, dtype=torch.float32)[0]
+
+        # interpolation low-quality image when the image size of them is different
+        if self.scale_factor_lr[idx] != 1:
+            img_lr = self.interp_sf(img_lr, self.scale_factor_lr[idx])
+
+        if self.scale_factor_hr[idx] != 1:
+            img_hr = self.interp_sf(img_hr, self.scale_factor_hr[idx])
+
+        # transformation
+        if self.transform is not None:
+            img_lr = self.transform(img_lr)
+            img_hr = self.transform(img_hr)
+
+        if self.dim == 3:
+            img_lr, img_hr = self.to3d(img_lr), self.to3d(img_hr)
+
+        # augmentation
+        if self.rotflip:
+            img_lr = self.Rot(img=img_lr, random_num=self.random_num[idx])
+            img_hr = self.Rot(img=img_hr, random_num=self.random_num[idx])
+
+        if self.clip is not None:
+            img_lr = torch.clamp(img_lr, min=self.clip[0], max=self.clip[1])
+            img_hr = torch.clamp(img_hr, min=self.clip[0], max=self.clip[1])
+
+        # output
+        if self.output_type == "ii-text":
+            return {"lr": img_lr, "hr": img_hr, "text": text}
+        elif self.output_type == "ii":
+            return {"lr": img_lr, "hr": img_hr}
+        elif self.output_type == "ii-task":
+            return {"lr": img_lr, "hr": img_hr, "task": self.sampel_task[idx]}
 
 
 def win2linux(win_path):

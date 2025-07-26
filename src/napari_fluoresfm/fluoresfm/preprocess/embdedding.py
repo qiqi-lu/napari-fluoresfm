@@ -82,12 +82,7 @@ def text_generation(params: dict, stop_flag=None, observer=None):
 
     # ------------------------------------------------------------------------------
     # generate text
-    pbar = tqdm.tqdm(
-        total=num_datset,
-        ncols=100,
-        desc="GENERATE TEXT",
-        disable=observer is not None,
-    )
+    pbar = tqdm.tqdm(total=num_datset, ncols=100, desc="GENERATE TEXT")
     with open(path_save_to, "w") as text_file:
         for i in range(num_datset):
             if stop_flag[0]:
@@ -223,18 +218,19 @@ def text_embdedding(params: dict, stop_flag=None, observer=None):
 
     embedder.eval()
 
-    # ------------------------------------------------------------------------------
-    pbar = tqdm.tqdm(
-        total=num_dataset,
-        ncols=80,
-        desc="EMBEDDING",
-        disable=observer is not None,
-    )
+    # --------------------------------------------------------------------------
+    pbar = tqdm.tqdm(total=num_dataset, ncols=80, desc="EMBEDDING")
+    if observer is not None:
+        observer.prograss_total(num_dataset)
+
     for i in range(num_dataset):
-        observer.progress(i)
+        if observer is not None:
+            observer.progress(i + 1)
+
         if stop_flag[0]:
             pbar.close()
             return 0
+
         prompt = dataset_text[i]
         cond = embedder(prompt)
         np.save(
