@@ -23,8 +23,15 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# files
 checkpoints/
 example/
+_tests/
+_reader.py
+_sample_data.py
+_writer.py
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
