@@ -25,7 +25,6 @@ var/
 *.egg
 checkpoints/
 example/
-_tests/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
