@@ -33,6 +33,11 @@ dependencies = [
     "magicgui",
     "qtpy",
     "scikit-image",
+    "torch",
+    "torchvision",
+    'torchaudio',
+    "tqdm",
+    "scipy",
 ]
 
 [project.optional-dependencies]
