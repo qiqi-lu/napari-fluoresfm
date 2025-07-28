@@ -9,7 +9,10 @@
 [![npe2](https://img.shields.io/badge/plugin-npe2-blue?link=https://napari.org/stable/plugins/index.html)](https://napari.org/stable/plugins/index.html)
 [![Copier](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/copier-org/copier/master/img/badge/badge-grayscale-inverted-border-purple.json)](https://github.com/copier-org/copier)
 
-A plugin to use FluoResFM model in napari.
+This is a `napari` plugin developed for using FluoResFM model in napari.
+FluoresFM is a deep learning-based foundation model for multi-task cross-distribution restoration of fluorescence microscopic images.
+
+FluoResFM's `napari` plugin is in early satge, therefore I highly encourage any feedback and suggestions.
 
 ----------------------------------
 
@@ -22,6 +25,9 @@ https://github.com/napari/napari-plugin-template#getting-started
 and review the napari docs for plugin developers:
 https://napari.org/stable/plugins/index.html
 -->
+
+## Before Installation
+
 
 ## Installation
 
