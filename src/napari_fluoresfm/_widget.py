@@ -475,9 +475,9 @@ class Widget_predict(basew.WidgetBase):
             vinit=1,
             step=1,
         )
-        self.batchsize_box = basew.ParamsBox("Batch size", "spin", 1, 1000, 4)
+        self.batchsize_box = basew.ParamsBox("Batch size", "spin", 1, 1000, 1)
         self.patchsize_box = basew.ParamsBox(
-            "Patch size", "spin", 64, 10000, 256, step=4
+            "Patch size", "spin", 64, 10000, 64, step=4
         )
         self.device_box = basew.DeviceBox(label="Device")
         self.compile_checkbox = QCheckBox("Compile model")

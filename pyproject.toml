@@ -45,6 +45,8 @@ dependencies = [
     "pydicom",
     "torchinfo",
     "tensorboard",
+    "transformers",
+    "openpyxl"
 ]
 
 [project.optional-dependencies]
