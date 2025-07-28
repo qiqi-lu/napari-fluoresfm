@@ -43,7 +43,7 @@ dependencies = [
     "pandas",
     "pytorch_msssim",
     "pydicom",
-    "torchinfo"
+    "torchinfo",
     "tensorboard",
 ]
 
