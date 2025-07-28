@@ -29,6 +29,7 @@ References:
 Replace code below according to your needs.
 """
 
+import traceback
 from typing import TYPE_CHECKING
 
 from qtpy.QtWidgets import (
@@ -153,11 +154,15 @@ class Worker_patching(basew.WorkerBase):
 
     def run(self):
         self.observer.notify("Patching start...")
-        res = patch_image(
-            self.params_dict,
-            observer=self.observer,
-            stop_flag=self.stop_flag,
-        )
+        try:
+            res = patch_image(
+                self.params_dict,
+                observer=self.observer,
+                stop_flag=self.stop_flag,
+            )
+        except Exception as e:  # noqa: BLE001
+            self.observer.notify(traceback.format_exc(e))
+            res = 0
         if res == 1:
             self.observer.notify("Run Finished.")
         else:

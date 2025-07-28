@@ -13,6 +13,19 @@ from napari_fluoresfm.fluoresfm.models.biomedclip_embedder import (
 def text_generation(params: dict, stop_flag=None, observer=None):
     """
     Generate text from excel file.
+    ### Parameters:
+    - `params`: dict, parameters for text generation.
+        - `path_dataset_xlx`: str, path to the excel file.
+        - `path_output`: str, path to the output folder.
+        - `text_type`: str, type of text to generate.
+            - "ALL": all the information.
+            - "TS": only task, structure.
+            - "T": only task.
+    - `stop_flag`: list, stop flag.
+    - `observer`: object, observer for logging.
+    ### Returns:
+    - 0: int, success.
+    - 1: int, error.
     """
     pout = print if observer is None else observer.notify
 
@@ -22,7 +35,7 @@ def text_generation(params: dict, stop_flag=None, observer=None):
     text_type = params["text_type"]
 
     if text_type not in ["ALL", "TSpixel", "TSmicro", "TS", "T"]:
-        pout(f"Unknown text_type: {text_type}")
+        pout(f"[ERROR] Unknown text_type: {text_type}")
         return 0
 
     # text_type = "ALL"  # all the information
@@ -32,7 +45,10 @@ def text_generation(params: dict, stop_flag=None, observer=None):
     # text_type = "T"  # only task
 
     if not os.path.exists(path_dataset_xlx):
-        pout(f"Dataset file not found:\n{path_dataset_xlx}")
+        pout(f"[ERROR] Dataset file not found:\n{path_dataset_xlx}")
+        # check whether the 64x64 sheet exists in the excel file
+        if "64x64" not in pandas.ExcelFile(path_dataset_xlx).sheet_names:
+            pout(f"[ERROR] Sheet '64x64' not found in {path_dataset_xlx}")
         return 0
 
     if not os.path.exists(path_output):
@@ -40,7 +56,9 @@ def text_generation(params: dict, stop_flag=None, observer=None):
         return 0
 
     # --------------------------------------------------------------------------
-    path_folder = os.path.join(path_output, "text", "v2")
+    # extract the name of excel file without the extension
+    excel_file_name = os.path.basename(path_dataset_xlx).split(".")[0]
+    path_folder = os.path.join(path_output, "text", excel_file_name)
     os.makedirs(path_folder, exist_ok=True)
     path_save_to = os.path.join(path_folder, "dataset_text_ALL.txt")
 
@@ -49,16 +67,12 @@ def text_generation(params: dict, stop_flag=None, observer=None):
     pout(f"Read information from:\n{path_dataset_xlx}")
     pout(f"Save text to:\n{path_save_to}")
 
-    # get all the sheet name in the excel file
-    sheet_names = pandas.ExcelFile(path_dataset_xlx).sheet_names
-    if "64x64" not in sheet_names:
-        pout(f"Sheet '64x64' not found in {path_dataset_xlx}")
-        return 0
-
+    # --------------------------------------------------------------------------
     datasets_frame = pandas.read_excel(path_dataset_xlx, sheet_name="64x64")
     num_datset = len(datasets_frame)
     pout(f"Number of dataset: {num_datset}")
 
+    # check if all the columns are in the excel file
     text_parts = [
         "task#",
         "sample",
@@ -72,10 +86,11 @@ def text_generation(params: dict, stop_flag=None, observer=None):
         "target pixel size",
     ]
 
-    # check if all the columns are in the excel file
     for text_part in text_parts:
         if text_part not in datasets_frame.columns:
-            pout(f"Column '{text_part}' not found in {path_dataset_xlx}")
+            pout(
+                f"[ERROR] Column '{text_part}' not found in {path_dataset_xlx}"
+            )
             return 0
 
     text_data = datasets_frame[text_parts]
@@ -88,6 +103,7 @@ def text_generation(params: dict, stop_flag=None, observer=None):
             if stop_flag[0]:
                 pbar.close()
                 return 0
+
             # conbine text
             if text_type == "ALL":
                 text_single = "Task: {}; sample: {}; structure: {}; fluorescence indicator: {}; input microscope: {}; input pixel size: {}; target microscope: {}; target pixel size: {}.\n".format(
@@ -136,34 +152,56 @@ def text_generation(params: dict, stop_flag=None, observer=None):
 def text_embdedding(params: dict, stop_flag=None, observer=None):
     """
     Embdedding text genertaed form text_generation() function.
+    ### Parameters:
+        - `params`: dict, parameters for text embdedding.
+            - `path_dataset_xlx`: str, path to the excel file.
+            - `path_output_txt`: str, path to the output folder.
+            - `path_embedder`: str, path to the embedder folder.
+            - `device`: str, device to use for embdedding.
+                e.g., "`cpu`", "`cuda:0`", "`cuda:1`", etc.
+            - `context_length`: int, context length for embdedding.
+            - `text_type`: str, type of text to embdedding. ["ALL", "TS", "T"].
+                - "ALL": all the information.
+                - "TS": only task, structure.
+                - "T": only task.
+        - `stop_flag`: list, stop flag for embdedding.
+        - `observer`: object, observer for embdedding.
     """
     pout = print if observer is None else observer.notify
 
     # check params -------------------------------------------------------------
+    path_dataset_xlx = params["path_dataset_xlx"]
     path_output = params["path_output_txt"]
     path_embedder = params["path_embedder"]
     device_id = params["device"]
     context_length = params["context_length"]
     text_type = params["text_type"]
 
+    if not os.path.exists(path_dataset_xlx):
+        pout(f"[ERROR] Dataset file not found: {path_dataset_xlx}")
+        return 0
+    if "64x64" not in pandas.ExcelFile(path_dataset_xlx).sheet_names:
+        pout(f"[ERROR] Sheet '64x64' not found in {path_dataset_xlx}")
+        return 0
+
     if not os.path.exists(path_output):
-        pout(f"Output folder not found: {path_output}")
+        pout(f"[ERROR] Output folder not found: {path_output}")
         return 0
     if not os.path.exists(path_embedder):
-        pout(f"Embedder file not found: {path_embedder}")
+        pout(f"[ERROR] Embedder file not found: {path_embedder}")
         return 0
     if device_id not in ["cpu"] + [
         f"cuda:{i}" for i in range(torch.cuda.device_count())
     ]:
-        pout(f"Unknown device: {device_id}")
+        pout(f"[ERROR] Unknown device: {device_id}")
         return 0
     if context_length > 256:
         pout(
-            f"Content length too large: {context_length}, should be less than 256."
+            f"[ERROR] Content length too large: {context_length}, should be less than 256."
         )
         return 0
     if text_type not in ["ALL", "TSpixel", "TSmicro", "TS", "T"]:
-        pout(f"Unknown text_type: {text_type}")
+        pout(f"[ERROR] Unknown text_type: {text_type}")
         return 0
     # --------------------------------------------------------------------------
     # generate text
@@ -171,15 +209,20 @@ def text_embdedding(params: dict, stop_flag=None, observer=None):
 
     # --------------------------------------------------------------------------
     device = torch.device(device_id)
-    path_text = os.path.join(path_output, "text", "v2")
-
-    path_dataset_txt = os.path.join(path_text, f"dataset_text_{text_type}.txt")
+    # extarct the name of excel file without the extension
+    path_dataset_txt = os.path.join(
+        path_output,
+        "text",
+        os.path.basename([path_dataset_xlx]).split(".")[0],
+        f"dataset_text_{text_type}.txt",
+    )
     path_save_to = path_dataset_txt.split(".")[0] + "_" + str(context_length)
     os.makedirs(path_save_to, exist_ok=True)
 
     pout("-" * 50)
+    pout(f"Path excel file:\n{path_dataset_xlx}")
     pout(f"Path dataset txt:\n{path_dataset_txt}")
-    pout(f"Path Embedder:\n{path_embedder}")
+    pout(f"Path embedder:\n{path_embedder}")
     pout(f"Context length:{context_length}")
     pout(f"Path save to:\n{path_save_to}")
     pout("-" * 50)
