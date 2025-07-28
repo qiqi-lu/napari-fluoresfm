@@ -213,7 +213,7 @@ def text_embdedding(params: dict, stop_flag=None, observer=None):
     path_dataset_txt = os.path.join(
         path_output,
         "text",
-        os.path.basename([path_dataset_xlx]).split(".")[0],
+        os.path.basename(path_dataset_xlx).split(".")[0],
         f"dataset_text_{text_type}.txt",
     )
     path_save_to = path_dataset_txt.split(".")[0] + "_" + str(context_length)

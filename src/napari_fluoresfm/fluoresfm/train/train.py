@@ -13,12 +13,22 @@ import torch
 import tqdm
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
+from torchinfo import summary
 
 import napari_fluoresfm.fluoresfm.utils.data as utils_data
 import napari_fluoresfm.fluoresfm.utils.evaluation as utils_eva
 import napari_fluoresfm.fluoresfm.utils.loss_functions as utils_loss
 import napari_fluoresfm.fluoresfm.utils.optim as utils_optim
 from napari_fluoresfm.fluoresfm.models.unet_sd_c import UNetModel
+
+# if on windows, set TMP and TEMP to a custom directory
+if os.name == "nt":
+    # get current drive name
+    drive_name = os.path.splitdrive(os.getcwd())[0] + os.sep
+    path_tmp = os.path.join(drive_name, "tmp_fluoresfm")
+    os.environ["TMP"] = path_tmp
+    os.environ["TEMP"] = path_tmp
+    os.makedirs(os.environ["TMP"], exist_ok=True)
 
 
 def train(params_in, stop_flag=None, observer=None):
@@ -87,10 +97,11 @@ def train(params_in, stop_flag=None, observer=None):
     # check whether the key exists in params_in
     key_list = [
         "path_excel",
-        "path_text_embeddeing",
+        "path_text_embedding",
         "path_checkpoint_from",
         "path_checkpoint_to",
         "device_id",
+        "compile",
         "batch_size",
         "num_epochs",
         "learning_rate",
@@ -103,15 +114,16 @@ def train(params_in, stop_flag=None, observer=None):
 
     for key in key_list:
         if key not in params_in:
-            pout(f"Key {key} not found in the input params")
+            pout(f"[ERROR] Key {key} not found in the input params")
             return 0
 
     # check whether the value is valid
     path_dataset_excel = params_in["path_excel"]
-    path_text_embeddeing = params_in["path_text_embeddeing"]
+    path_text_embeddeing = params_in["path_text_embedding"]
     path_checkpoint_from = params_in["path_checkpoint_from"]
     path_checkpoint_to = params_in["path_checkpoint_to"]
     device_id = params_in["device_id"]
+    compile_check = params_in["compile"]
     batch_size = params_in["batch_size"]
     num_epochs = params_in["num_epochs"]
     learning_rate = params_in["learning_rate"]
@@ -122,7 +134,9 @@ def train(params_in, stop_flag=None, observer=None):
     finetune = params_in["finetune"]
 
     if not os.path.exists(path_text_embeddeing):
-        pout(f"Folder for text embedding not found:\n {path_text_embeddeing}")
+        pout(
+            f"[ERROR] Folder for text embedding not found:\n {path_text_embeddeing}"
+        )
         return 0
     else:
         path_text_embeddeing = utils_data.win2linux(path_text_embeddeing)
@@ -130,14 +144,14 @@ def train(params_in, stop_flag=None, observer=None):
     params["enable_validation"] = frac_val != 0
 
     if not os.path.exists(path_dataset_excel):
-        pout(f"File not found:\n {path_dataset_excel}")
+        pout(f"[ERROR] Excel File not found:\n {path_dataset_excel}")
         return 0
     else:
         path_dataset_excel = utils_data.win2linux(path_dataset_excel)
 
     sheet_names = pandas.ExcelFile(path_dataset_excel).sheet_names
     if params["sheet_name"] not in sheet_names:
-        pout(f"Sheet [64x64] not found in {path_dataset_excel}")
+        pout(f"[ERROR] Sheet [64x64] not found in {path_dataset_excel}")
         return 0
 
     if finetune:
@@ -145,21 +159,25 @@ def train(params_in, stop_flag=None, observer=None):
             not os.path.exists(path_checkpoint_from)
             or path_checkpoint_from == ""
         ):
-            pout(f"Pretrianed checkpoint not found:\n {path_checkpoint_from}")
+            pout(
+                f"[ERROR] Pretrianed checkpoint not found:\n {path_checkpoint_from}"
+            )
             return 0
         else:
             path_checkpoint_from = utils_data.win2linux(path_checkpoint_from)
     else:
-        if not os.path.exists(path_checkpoint_from):
-            pout(f"Pretrained checkpoint not found:\n {path_checkpoint_from}")
-            return 0
-        elif path_checkpoint_from == "":
+        if path_checkpoint_from == "":
             path_checkpoint_from = None
+        elif not os.path.exists(path_checkpoint_from):
+            pout(
+                f"[ERROR] Pretrained checkpoint not found:\n {path_checkpoint_from}"
+            )
+            return 0
         else:
             path_checkpoint_from = utils_data.win2linux(path_checkpoint_from)
 
     if not os.path.exists(path_checkpoint_to):
-        pout(f"Directory not found:\n {path_checkpoint_to}")
+        pout(f"[ERROR] Directory not found:\n {path_checkpoint_to}")
         return 0
     else:
         path_checkpoint_to = utils_data.win2linux(path_checkpoint_to)
@@ -167,7 +185,7 @@ def train(params_in, stop_flag=None, observer=None):
     if device_id not in ["cpu"] + [
         f"cuda:{i}" for i in range(torch.cuda.device_count())
     ]:
-        pout(f"Device not found:\n {device_id}")
+        pout(f"[ERROR] Device not found:\n {device_id}")
         return 0
     # --------------------------------------------------------------------------
 
@@ -178,6 +196,7 @@ def train(params_in, stop_flag=None, observer=None):
             "saved_checkpoint": path_checkpoint_from,
             "path_checkpoints": path_checkpoint_to,
             "device": device_id,
+            "complie": compile_check,
             "batch_size": batch_size,
             "num_epochs": num_epochs,
             "lr": learning_rate,
@@ -202,7 +221,9 @@ def train(params_in, stop_flag=None, observer=None):
         params["path_text"], "dataset_text" + params["embaedding_type"]
     )
     if not os.path.exists(path_dataset_text):
-        pout(f"Folder for text embedding not found:\n {path_dataset_text}")
+        pout(
+            f"[ERROR] Folder for text embedding not found:\n {path_dataset_text}"
+        )
         return 0
 
     # save checkpoints to
@@ -254,7 +275,7 @@ def train(params_in, stop_flag=None, observer=None):
     ]
     for column in column_list:
         if column not in data_frame.columns:
-            pout(f"Column {column} not found in the data frame")
+            pout(f"[ERROR] Column {column} not found in the data frame")
             return 0
 
     if params["task"]:
@@ -328,12 +349,12 @@ def train(params_in, stop_flag=None, observer=None):
     text_shape = dataset_train[0]["text"].shape
 
     pout(
-        f"- Num of Batches (train| valid): {num_batches_train}|{num_batch_val}"
+        f"[INFO] Num of Batches (train| valid): {num_batches_train}|{num_batch_val}"
     )
     pout(
-        f"- Input shape: ({img_lr_shape}, {text_shape})",
+        f"[INFO] Input shape: ({img_lr_shape}, {text_shape})",
     )
-    pout(f"- GT shape: {img_hr_shape}")
+    pout(f"[INFO] GT shape: {img_hr_shape}")
 
     # ------------------------------------------------------------------------------
     # model
@@ -354,10 +375,20 @@ def train(params_in, stop_flag=None, observer=None):
             scale_factor=params["scale_factor"],
         )
 
+    with torch.autocast("cuda", torch.float16, enabled=params["enable_amp"]):
+        dtype = torch.float16 if params["enable_amp"] else torch.float32
+        summary(
+            model=model,
+            input_size=((1,) + img_lr_shape, (1,), (1, text_shape[0], 768)),
+            dtypes=(dtype,) * 3,
+            device=params["device"],
+        )
+
     model.to(device=device)
 
     # complie
     if params["complie"]:
+        pout("[INFO] Compile model...")
         model = torch.compile(model)
 
     torch.backends.cudnn.benchmark = params["cudnn-auto-tunner"]
@@ -366,7 +397,7 @@ def train(params_in, stop_flag=None, observer=None):
     # ------------------------------------------------------------------------------
     # pre-trained model parameters
     if params["saved_checkpoint"] is not None:
-        pout("- Load saved pre-trained model parameters from:"),
+        pout("[INFO] Load saved pre-trained model parameters from:"),
         pout(params["saved_checkpoint"])
 
         state_dict = torch.load(
@@ -386,18 +417,22 @@ def train(params_in, stop_flag=None, observer=None):
         start_iter = 0
 
     if params["finetune"]:
+        pout("[INFO] Fintuning ...")
         start_iter = 0
         model_parameters = model.finetune(strategy=params["finetune-strategy"])
 
         # print the name of parameters that are not frozen
-        pout("- Finetune model parameters:")
+        pout("[INFO] Finetune model parameters:")
         for name, param in model_parameters:
             pout(f"  - ({name, param.shape})")
     else:
         model_parameters = model.named_parameters()
 
-    pout("Number of trainable parameters:")
-    pout(sum(p[1].numel() for p in model_parameters if p[1].requires_grad))
+    model_parameters = list(model_parameters)
+    num_p = str(
+        sum(p[1].numel() for p in model_parameters if p[1].requires_grad)
+    )
+    pout(f"[INFO] Number of trainable parameters: {num_p}")
 
     # ------------------------------------------------------------------------------
     # optimization
@@ -420,9 +455,9 @@ def train(params_in, stop_flag=None, observer=None):
     # trains
     # ------------------------------------------------------------------------------
     pout(
-        f"Batch size: {params['batch_size']} | Num of Batches: {num_batches_train}"
+        f"[INFO] Batch size: {params['batch_size']} | Num of Batches: {num_batches_train}"
     )
-    pout(f"save model to {path_save_model}")
+    pout(f"[INFO] save model to {path_save_model}")
 
     scaler = torch.GradScaler("cuda", enabled=params["enable_gradscaler"])
 
@@ -445,9 +480,11 @@ def train(params_in, stop_flag=None, observer=None):
             # ------------------------------------------------------------------
             for i_batch, data in enumerate(dataloader_train):
 
-                if stop_flag[0]:
+                if stop_flag is not None and stop_flag[0]:
                     pbar.close()
                     log_writer.close()
+                    del model
+                    torch.cuda.empty_cache()
                     return 0
 
                 i_iter = i_batch + i_epoch * num_batches_train + start_iter
@@ -483,12 +520,14 @@ def train(params_in, stop_flag=None, observer=None):
                 if torch.isnan(loss):
                     pout("-" * 50)
                     pout("\nLoss is NaN!")
-                    pout(f"- input max/min: {imgs_lr.max()} {imgs_hr.min()}")
                     pout(
-                        f"- output max/min: {imgs_est.max()} {imgs_est.min()}"
+                        f"[INFO] input max/min: {imgs_lr.max()} {imgs_hr.min()}"
                     )
                     pout(
-                        f"- estimation max/min: {imgs_est.max()} {imgs_est.min()}"
+                        f"[INFO] output max/min: {imgs_est.max()} {imgs_est.min()}"
+                    )
+                    pout(
+                        f"[INFO] estimation max/min: {imgs_est.max()} {imgs_est.min()}"
                     )
                     pout("-" * 50)
                     pbar.close()
@@ -670,5 +709,27 @@ def train(params_in, stop_flag=None, observer=None):
         log_writer.flush()
         log_writer.close()
         pout("Training done.")
-
+    del model
+    torch.cuda.empty_cache()
     return 1
+
+
+if __name__ == "__main__":
+    params = {
+        "path_excel": r"E:\qiqilu\Project\2025 napari-FluoResFM\napari-fluoresfm\src\napari_fluoresfm\fluoresfm\example\data\train.xlsx",
+        "path_text_embedding": r"E:\qiqilu\Project\2025 napari-FluoResFM\napari-fluoresfm\src\napari_fluoresfm\fluoresfm\example\data\\text\train",
+        "path_checkpoint_from": "",
+        "path_checkpoint_to": r"E:\qiqilu\Project\2025 napari-FluoResFM\napari-fluoresfm\src\napari_fluoresfm\fluoresfm\example\data\checkpoint",
+        "device_id": "cuda:0",
+        "compile": True,
+        "batch_size": 2,
+        "num_epochs": 1,
+        "learning_rate": 0.00001,
+        "decay_every_iter": 100000,
+        "val_every_iter": 10000,
+        # "frac_val": 0.01,
+        "frac_val": 0,
+        "save_every_iter": 5000,
+        "finetune": False,
+    }
+    train(params)

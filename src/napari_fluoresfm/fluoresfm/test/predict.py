@@ -37,7 +37,9 @@ def predict(params_in: dict, stop_flag=None, observer=None):
     # defualt parameters
     params = {
         "enable_amp": True,
+        # "enable_amp": False,
         "complie_model": True,
+        # "complie_model": False,
         "embedder": "biomedclip",
         "model_name": "unet_sd_c",
         "in_channels": 1,
@@ -60,6 +62,24 @@ def predict(params_in: dict, stop_flag=None, observer=None):
     pout = observer.notify if observer is not None else print
 
     # check parameters ---------------------------------------------------------
+    key_list = [
+        "path_input",
+        "path_input_index",
+        "path_output",
+        "path_embedder",
+        "path_checkpoint",
+        "sf_lr",
+        "batch_size",
+        "patch_size",
+        "device",
+        "compile",
+        "text",
+    ]
+    for key in key_list:
+        if key not in params_in:
+            pout(f"[ERROR] Key not found: {key}")
+            return 0
+
     path_input = params_in["path_input"]
     path_input_index = params_in["path_input_index"]
     path_output = params_in["path_output"]
@@ -79,14 +99,14 @@ def predict(params_in: dict, stop_flag=None, observer=None):
         pout(f"[ERROR] Input index path does not exist:\n{path_input_index}")
         return 0
 
-    if path_output == "":
+    if path_output == "" or path_output is None:
         path_output = path_input + "_fluoresfm"
     elif not os.path.exists(path_output):
         pout(f"[ERROR] Output path does not exist:\n{path_output}")
         path_output = path_input + "_fluoresfm"
     else:
         pass
-    pout(f'Save output into: \n "{path_output}"')
+    pout(f'[INFO] Save output into: \n "{path_output}"')
 
     if not os.path.exists(path_embedder):
         pout(f"[ERROR] Embdedder path does not exist:{path_embedder}")
@@ -129,6 +149,7 @@ def predict(params_in: dict, stop_flag=None, observer=None):
             "overlap": patch_size // 4,
             "patch_size": patch_size,
             "device": device_id,
+            "complie_model": params_in["compile"],
             "text": text,
             "batch_size": batch_size,
             "sf_lr": sf_lr,
@@ -202,19 +223,26 @@ def predict(params_in: dict, stop_flag=None, observer=None):
             scale_factor=params["scale_factor"],
         ).to(device)
 
+    if params["complie_model"]:
+        pout("[INFO] compile model...")
+        model = torch.compile(model)  # need time for model compile.
+
+    torch.backends.cudnn.benchmark = True
+    torch.set_float32_matmul_precision("high")
+
     # load model parameters
     pout("load model parameters...")
     state_dict = torch.load(
         path_checkpoint, map_location=device, weights_only=True
     )["model_state_dict"]
-    # del prefix for complied model
-    state_dict = utils_optim.on_load_checkpoint(checkpoint=state_dict)
-    model.load_state_dict(state_dict)
-    if params["complie_model"]:
-        pout("compile model...")
-        model = torch.compile(model)  # need time for model compile.
-    model.eval()
 
+    # del prefix for complied model
+    state_dict = utils_optim.on_load_checkpoint(
+        checkpoint=state_dict, complie_mode=params["complie_model"]
+    )
+    model.load_state_dict(state_dict)
+
+    model.eval()
     # --------------------------------------------------------------------------
     #                            Prediction
     # --------------------------------------------------------------------------
@@ -250,8 +278,8 @@ def predict(params_in: dict, stop_flag=None, observer=None):
         observer.prograss_total(num_sample_eva)
 
     for i_sample in range(num_sample_eva):
-        if stop_flag[0]:
-            pout("Stop prediction.")
+        if stop_flag is not None and stop_flag[0]:
+            pout("[WARNNING] Stop prediction.")
             return 0
         if observer is not None:
             observer.progress(i_sample + 1)
@@ -372,3 +400,20 @@ def predict(params_in: dict, stop_flag=None, observer=None):
     pout("-" * 50)
     pout("Done.")
     return 1
+
+
+if __name__ == "__main__":
+    text = "Task: deconvolution; sample: fixed COS-7 cell line; structure: microtubule; fluorescence indicator: mEmerald (GFP); input microsocpy: wide-field microsocpe with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3); input pixel size: 62.6 x 62.6 nm; target microsocpy: linear structured illumination microscope with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3); target pixel size: 62.6 x 62.6 nm。"
+    params = {
+        "path_input": r"E:\qiqilu\Project\2025 napari-FluoResFM\napari-fluoresfm\src\napari_fluoresfm\fluoresfm\example\data\BioSR_MT\test\channel_0\WF_noise_level_3",
+        "path_input_index": r"E:\qiqilu\Project\2025 napari-FluoResFM\napari-fluoresfm\src\napari_fluoresfm\fluoresfm\example\data\BioSR_MT\test.txt",
+        "path_output": None,
+        "path_embedder": r"E:\qiqilu\Project\2025 napari-FluoResFM\napari-fluoresfm\src\napari_fluoresfm\fluoresfm\example\checkpoints\biomedclip",
+        "path_checkpoint": r"E:\qiqilu\Project\2025 napari-FluoResFM\napari-fluoresfm\src\napari_fluoresfm\fluoresfm\example\checkpoints\fluoresfm\epoch_0_iter_700000.pt",
+        "sf_lr": 1,
+        "batch_size": 4,
+        "patch_size": 64,
+        "device": "cuda:0",
+        "text": text,
+    }
+    predict(params)

@@ -48,14 +48,18 @@ import napari_fluoresfm.base_widgts as basew
 from napari_fluoresfm.fluoresfm.preprocess.embdedding import text_embdedding
 from napari_fluoresfm.fluoresfm.preprocess.patching import patch_image
 from napari_fluoresfm.fluoresfm.test.predict import predict
+from napari_fluoresfm.fluoresfm.train.train import train
 
 if TYPE_CHECKING:
     import napari
+import sys
 import time
 
 from magicgui import magic_factory
 from magicgui.widgets import CheckBox, Container, create_widget
 from skimage.util import img_as_float
+
+isDebug = sys.gettrace() is not None
 
 
 # Uses the `autogenerate: true` flag in the plugin manifest
@@ -161,7 +165,9 @@ class Worker_patching(basew.WorkerBase):
                 stop_flag=self.stop_flag,
             )
         except Exception as e:  # noqa: BLE001
-            self.observer.notify(traceback.format_exc(e))
+            if isDebug:
+                raise e
+            self.observer.notify(traceback.format_exc())
             res = 0
         if res == 1:
             self.observer.notify("Run Finished.")
@@ -187,10 +193,10 @@ class Widget_patching(basew.WidgetBase):
         group_path.setLayout(group_path_layout)
 
         self.path_raw_box = basew.DirectorySelectWidget(
-            "Dataset", "Select the folder of raw data"
+            "Dataset Folder", "Select the folder of raw data"
         )
         self.path_index_file_box = basew.FileSelectWidget(
-            "Index file", "Select the index file"
+            "Index File", "Select the index file"
         )
 
         group_path_layout.addWidget(self.path_raw_box)
@@ -266,11 +272,17 @@ class Worker_embedding(basew.WorkerBase):
 
     def run(self):
         self.observer.notify("Embedding strat...")
-        res = text_embdedding(
-            self.params_dict,
-            observer=self.observer,
-            stop_flag=self.stop_flag,
-        )
+        try:
+            res = text_embdedding(
+                self.params_dict,
+                observer=self.observer,
+                stop_flag=self.stop_flag,
+            )
+        except Exception as e:  # noqa: BLE001
+            if isDebug:
+                raise e
+            self.observer.notify(traceback.format_exc())
+            res = 0
         if res == 1:
             self.observer.notify("Run Finished.")
         else:
@@ -293,13 +305,13 @@ class Widget_embedding(basew.WidgetBase):
         group_path_layout = QVBoxLayout()
         group_path.setLayout(group_path_layout)
         self.path_excel_box = basew.FileSelectWidget(
-            "Excel", "Select the excel file"
+            "Excel File", "Select the excel file"
         )
         self.path_embedder_box = basew.DirectorySelectWidget(
             "Embedder", "Select the folder of embedder"
         )
         self.path_output_box = basew.DirectorySelectWidget(
-            "Output", "Select the folder of output"
+            "Output Folder", "Select the folder of output"
         )
         group_path_layout.addWidget(self.path_excel_box)
         group_path_layout.addWidget(self.path_output_box)
@@ -363,7 +375,7 @@ class Widget_log(QGroupBox):
         grid_layout = QGridLayout()
         self.setLayout(grid_layout)
 
-        self.clear_btn = QPushButton("clear")
+        self.clear_btn = QPushButton("CLEAR")
         grid_layout.addWidget(self.clear_btn, 0, 0, 1, 1)
 
         self.log_box = QTextEdit()
@@ -396,11 +408,17 @@ class Worker_predict(basew.WorkerBase):
 
     def run(self):
         self.observer.notify("Prediction strat ...")
-        res = predict(
-            self.params_dict,
-            stop_flag=self.stop_flag,
-            observer=self.observer,
-        )
+        try:
+            res = predict(
+                self.params_dict,
+                stop_flag=self.stop_flag,
+                observer=self.observer,
+            )
+        except Exception as e:  # noqa: BLE001
+            if isDebug:
+                raise e
+            self.observer.notify(traceback.format_exc())
+            res = 0
 
         if res == 1:
             self.observer.notify("Run Finished.")
@@ -424,13 +442,13 @@ class Widget_predict(basew.WidgetBase):
         group_path.setLayout(group_path_layout)
 
         self.path_input_box = basew.DirectorySelectWidget(
-            "Input", "Select the input folder"
+            "Input Folder", "Select the input folder"
         )
         self.path_input_index_box = basew.FileSelectWidget(
-            "Index file", "Select the index file"
+            "Index File", "Select the index file"
         )
         self.path_output_box = basew.DirectorySelectWidget(
-            "Output", "Select the output folder"
+            "Output Folder", "Select the output folder"
         )
         self.path_embedder_box = basew.DirectorySelectWidget(
             "Embedder", "Select the folder save the embedder"
@@ -462,8 +480,11 @@ class Widget_predict(basew.WidgetBase):
             "Patch size", "spin", 64, 10000, 256, step=4
         )
         self.device_box = basew.DeviceBox(label="Device")
+        self.compile_checkbox = QCheckBox("Compile model")
+        self.compile_checkbox.setChecked(False)
 
         group_params_layout.addWidget(self.device_box)
+        group_params_layout.addWidget(self.compile_checkbox)
         group_params_layout.addWidget(self.scale_factor_box)
         group_params_layout.addWidget(self.batchsize_box)
         group_params_layout.addWidget(self.patchsize_box)
@@ -477,15 +498,15 @@ class Widget_predict(basew.WidgetBase):
         )
         self.text_task_box.set_text("deconvolution")
         self.text_sample_box = basew.TextBox(
-            "sample: (e.g., fixed COS-7 cell line)", box_type="LE"
+            "Sample: (e.g., fixed COS-7 cell line)", box_type="LE"
         )
         self.text_sample_box.set_text("fixed COS-7 cell line")
         self.text_structure_box = basew.TextBox(
-            "structure: (e.g., microtubule)", box_type="LE"
+            "Structure: (e.g., microtubule)", box_type="LE"
         )
         self.text_structure_box.set_text("microtubule")
         self.text_fluor_box = basew.TextBox(
-            "fluorescence indicator: (e.g., mEmerald (GFP))", box_type="LE"
+            "Fluorescence indicator: (e.g., mEmerald (GFP))", box_type="LE"
         )
         self.text_fluor_box.set_text("mEmerald (GFP)")
 
@@ -495,18 +516,18 @@ class Widget_predict(basew.WidgetBase):
         group_input.setLayout(group_input_layout)
 
         self.text_in_micro_box = basew.TextBox(
-            "microsocpy: (e.g., wide-field microsocpe)", box_type="LE"
+            "Microsocpy: (e.g., wide-field microsocpe)", box_type="LE"
         )
         self.text_in_micro_box.set_text("wide-field microsocpe")
         self.text_in_micro_params_box = basew.TextBox(
-            "microsocpy params: (e.g., with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3)",
+            "Microsocpy params: (e.g., with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3)",
             box_type="TE",
         )
         self.text_in_micro_params_box.set_text(
             "with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3"
         )
         self.text_in_px_box = basew.TextBox(
-            "pixel size: (e.g., 62.6 x 62.6 nm)", box_type="LE"
+            "Pixel size: (e.g., 62.6 x 62.6 nm)", box_type="LE"
         )
         self.text_in_px_box.set_text("62.6 x 62.6 nm")
 
@@ -520,7 +541,7 @@ class Widget_predict(basew.WidgetBase):
         group_output.setLayout(group_output_layout)
 
         self.text_out_micro_box = basew.TextBox(
-            "microsocpy: (e.g., linear structured illumination microscope)",
+            "Microsocpy: (e.g., linear structured illumination microscope)",
             box_type="LE",
         )
         self.text_out_micro_box.set_text(
@@ -528,7 +549,7 @@ class Widget_predict(basew.WidgetBase):
         )
 
         self.text_out_micro_params_box = basew.TextBox(
-            "microsocpy params: (e.g., with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3)",
+            "Microsocpy params: (e.g., with excitation numerical aperture (NA) of 1.35, detection numerical aperture (NA) of 1.3)",
             box_type="TE",
         )
         self.text_out_micro_params_box.set_text(
@@ -536,7 +557,7 @@ class Widget_predict(basew.WidgetBase):
         )
 
         self.text_out_px_box = basew.TextBox(
-            "pixel size: (e.g., 62.6 x 62.6 nm)", box_type="LE"
+            "Pixel size: (e.g., 62.6 x 62.6 nm)", box_type="LE"
         )
         self.text_out_px_box.set_text("62.6 x 62.6 nm")
 
@@ -553,7 +574,7 @@ class Widget_predict(basew.WidgetBase):
         group_text_layout.addWidget(group_output)
 
         # progress bar and run button ------------------------------------------
-        group_run = QGroupBox("Run")
+        group_run = QGroupBox("RUN")
         group_run_layout = QGridLayout()
         group_run.setLayout(group_run_layout)
         group_run_layout.addWidget(self.run_btn, 0, 0, 1, 2)
@@ -595,6 +616,7 @@ class Widget_predict(basew.WidgetBase):
                 "batch_size": self.batchsize_box.get_value(),
                 "patch_size": self.patchsize_box.get_value(),
                 "device": self.device_box.get_value(),
+                "compile": self.compile_checkbox.isChecked(),
                 "text": self.get_text(),
             }
         )
@@ -613,9 +635,17 @@ class Worker_train(basew.WorkerBase):
 
     def run(self):
         self.observer.notify("Training strat ...")
-        res = tmp_function(
-            self.params_dict, observer=self.observer, stop_flag=self.stop_flag
-        )
+        try:
+            res = train(
+                self.params_dict,
+                observer=self.observer,
+                stop_flag=self.stop_flag,
+            )
+        except Exception as e:  # noqa: BLE001
+            if isDebug:
+                raise e
+            self.observer.notify(traceback.format_exc())
+            res = 0
         if res == 1:
             self.observer.notify("Train Finished.")
         else:
@@ -638,7 +668,7 @@ class Widget_train(basew.WidgetBase):
             "Information Excel", "Select the information excel"
         )
         self.path_text_embedding_box = basew.DirectorySelectWidget(
-            "Text embedding", "Select the folder of text embedding"
+            "Text Embedding", "Select the folder of text embedding"
         )
         self.path_checkpoint_from_box = basew.FileSelectWidget(
             "Checkpoint (load from)", "Select the checkpoint to load"
@@ -661,7 +691,10 @@ class Widget_train(basew.WidgetBase):
         group_params.setLayout(group_params_layout)
 
         self.device_box = basew.DeviceBox(label="Device")
-        self.batchsize_box = basew.ParamsBox("Batch size", "spin", 1, 1000, 16)
+        self.compile_checkbox = QCheckBox("Compile")
+        self.compile_checkbox.setChecked(True)
+
+        self.batchsize_box = basew.ParamsBox("Batch size", "spin", 1, 1000, 2)
         self.epochs_box = basew.ParamsBox("Epochs", "spin", 1, 10000, 2)
         self.lr_box = basew.ParamsBox(
             "Learning rate",
@@ -680,7 +713,7 @@ class Widget_train(basew.WidgetBase):
             "spin",
             0,
             1000000,
-            vinit=10000,
+            vinit=5000,
             step=100,
         )
         self.frac_val_box = basew.ParamsBox(
@@ -701,13 +734,17 @@ class Widget_train(basew.WidgetBase):
         )
 
         group_params_layout.addWidget(self.device_box)
+        group_params_layout.addWidget(self.compile_checkbox)
         group_params_layout.addWidget(self.batchsize_box)
         group_params_layout.addWidget(self.epochs_box)
         group_params_layout.addWidget(self.lr_box)
         group_params_layout.addWidget(self.decay_box)
+        group_params_layout.addWidget(self.val_every_iter_box)
+        group_params_layout.addWidget(self.frac_val_box)
+        group_params_layout.addWidget(self.save_every_iter_box)
 
         # progress bar and run button ------------------------------------------
-        group_run = QGroupBox("Run")
+        group_run = QGroupBox("RUN")
         group_run_layout = QGridLayout()
         group_run.setLayout(group_run_layout)
         group_run_layout.addWidget(self.run_btn, 0, 0, 1, 2)
@@ -732,6 +769,7 @@ class Widget_train(basew.WidgetBase):
                 "batch_size": self.batchsize_box.get_value(),
                 "num_epochs": self.epochs_box.get_value(),
                 "device_id": self.device_box.get_value(),
+                "compile": self.compile_checkbox.isChecked(),
                 "learning_rate": self.lr_box.get_value(),
                 "decay_every_iter": self.decay_box.get_value(),
                 "val_every_iter": self.val_every_iter_box.get_value(),
@@ -785,9 +823,9 @@ class Widget_train_predict(QWidget):
 
         # ----------------------------------------------------------------------
         tab = QTabWidget()
+        tab.addTab(page_predict, "Predict")
         tab.addTab(page_preprocess, "Preprocess")
         tab.addTab(page_train, "Train")
-        tab.addTab(page_predict, "Predict")
         tab.addTab(page_logger, "Log")
 
         layout = QVBoxLayout()
@@ -801,6 +839,6 @@ if __name__ == "__main__":
 
     viewer = napari.Viewer()
     dock, widget = viewer.window.add_plugin_dock_widget(
-        plugin_name="napari-fluoresfm", widget_name="Main Widget"
+        plugin_name="napari-fluoresfm", widget_name="FluoResFM"
     )
     napari.run()

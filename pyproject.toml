@@ -43,6 +43,7 @@ dependencies = [
     "pandas",
     "pytorch_msssim",
     "pydicom",
+    "torchinfo"
 ]
 
 [project.optional-dependencies]

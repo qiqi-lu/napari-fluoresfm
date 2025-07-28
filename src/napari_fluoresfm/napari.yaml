@@ -59,4 +59,4 @@ contributions:
     # - command: napari-fluoresfm.make_qwidget
     #   display_name: Example QWidget
     - command: napari-fluoresfm.make_main_widget
-      display_name: Main Widget
+      display_name: FluoResFM
