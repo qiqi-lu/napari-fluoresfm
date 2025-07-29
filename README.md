@@ -98,20 +98,14 @@ This box is used to set the text prompt for the model.
 - **Structure**: The imaging structure. For example, "microtubules".
 - **Fluorescence indicator**: The fluorescence indicator. For example, "mEmerald (GFP)".
 - **INPUT**: The imaging condition of image image.
-
-    **Microscope**: The microscope used for imaging. Such as, "wide-field microscope".
-
-    **Mircoscopy params**: The microscope parameters. For example, "with excitation numrical aperture (NA) of 1.35, detection namerical aperture (NA) of 1.3".
-
-    **Pixel size**: The pixel size of the image. For example, "62.6 x 62.6 nm".
+    - **Microscope**: The microscope used for imaging. Such as, "wide-field microscope".
+    - **Mircoscopy params**: The microscope parameters. For example, "with excitation numrical aperture (NA) of 1.35, detection namerical aperture (NA) of 1.3".
+    - **Pixel size**: The pixel size of the image. For example, "62.6 x 62.6 nm".
 
 - **OUTPUT**: The imaging condition of the target image.
-
-    **Microscope**: The microscope used for imaging. Such as, "linear structured illumination microscopy".
-
-    **Mircoscopy params**: The microscope parameters. For example, "with excitation numrical aperture (NA) of 1.35, detection namerical aperture (NA) of 1.3".
-
-    **Pixel size**: The pixel size of the image. For example, "62.6 x 62.6 nm".
+    - **Microscope**: The microscope used for imaging. Such as, "linear structured illumination microscopy".
+    - **Mircoscopy params**: The microscope parameters. For example, "with excitation numrical aperture (NA) of 1.35, detection namerical aperture (NA) of 1.3".
+    - **Pixel size**: The pixel size of the image. For example, "62.6 x 62.6 nm".
 
 #### RUN box
 This box is used to start, stop, and watch the prediction process. Press the **run** button to start the prediction. Press the **stop** button to stop the prediction. The prediciton process will be shown in the progress bar.
@@ -120,17 +114,14 @@ This box is used to start, stop, and watch the prediction process. Press the **r
 This page is used for data preprocessing, including data patching and text embedding modules.
 #### IMAGE PATCHING box
 - **PATH**
-
-    **Dataset Folder**: The folder containing the images to be patched. The images should be in `.tif` format with a shape of `(1, H, W)` or `(H, W)`. The model will patch the images one by one and save them into a folder named `#Dataset Folder#_p#patch size#_s#patch stride#_2d`.
-
-    **Index File**: This should be a `.txt` file containing all the file names of the images to be patched in each line. The file name should be the same as that of images in the **Dataset Folder**.
+    - **Dataset Folder**: The folder containing the images to be patched. The images should be in `.tif` format with a shape of `(1, H, W)` or `(H, W)`. The model will patch the images one by one and save them into a folder named `#Dataset Folder#_p#patch size#_s#patch stride#_2d`.
+    - **Index File**: This should be a `.txt` file containing all the file names of the images to be patched in each line. The file name should be the same as that of images in the **Dataset Folder**.
 
 - **PARAMETERS**
-
-    **Patch size**: The size of the patch. Deault is `64`, which is same as that used for FluoResFM pretraining.
-    **Patch stride**: The stride of the patch. Deault is `64`, i.e., no overlap between patches, which is same as that used for FluoResFM pretraining.
-    **Normalization (low)**: The lower bound of the percentile-based normalization. Deault is `0.03`.
-    **Normalization (high)**: The upper bound of the percentile-based normalization. Deault is `0.995`.
+    - **Patch size**: The size of the patch. Deault is `64`, which is same as that used for FluoResFM pretraining.
+    - **Patch stride**: The stride of the patch. Deault is `64`, i.e., no overlap between patches, which is same as that used for FluoResFM pretraining.
+    - **Normalization (low)**: The lower bound of the percentile-based normalization. Deault is `0.03`.
+    - **Normalization (high)**: The upper bound of the percentile-based normalization. Deault is `0.995`.
 
 - **RUN**
 
@@ -138,20 +129,14 @@ This page is used for data preprocessing, including data patching and text embed
 
 #### EMBEDDING box
 - **PATH**
-
-    **Excel File**: The excel file containing all the information for the datasets used for training or fine-tuning. The excel file should be in `.xlsx` format. The excel file should contain the all the columns as shown in the example data.
-
-    **Output Folder**: The folder to save the text embeddings. The generated text will be saved into a `.txt` file named as `dataset_text_#Text type#.txt`. The corresponding text embedding will be saved into a folder named `dataset_text_#Text type#_#Context length#`. Each `.npy` file is for each dataset. The id is corresponding to the order of the dataset in the excel file.
-
-    **Embedder**: The folder saved the text embedder model.
+    - **Excel File**: The excel file containing all the information for the datasets used for training or fine-tuning. The excel file should be in `.xlsx` format. The excel file should contain the all the columns as shown in the example data.
+    - **Output Folder**: The folder to save the text embeddings. The generated text will be saved into a `.txt` file named as `dataset_text_#Text type#.txt`. The corresponding text embedding will be saved into a folder named `dataset_text_#Text type#_#Context length#`. Each `.npy` file is for each dataset. The id is corresponding to the order of the dataset in the excel file.
+    - **Embedder**: The folder saved the text embedder model.
 
 - **PARAMETERS**
-
-    **Device**: The device to run the model. Only support `cuda`.
-
-    **Context length**: The context length of the text embedding. Deault is `160`, which is same as that used for FluoResFM pretraining.
-
-    **Text type**: The type of the text. ["ALL", "T", "TS"], where "ALL" means all the text informatio will be used, "T" means only the task informaiton will be used, and "TS" means only the task and structure informaiton will be used.
+    - **Device**: The device to run the model. Only support `cuda`.
+    - **Context length**: The context length of the text embedding. Deault is `160`, which is same as that used for FluoResFM pretraining.
+    - **Text type**: The type of the text. ["ALL", "T", "TS"], where "ALL" means all the text informatio will be used, "T" means only the task informaiton will be used, and "TS" means only the task and structure informaiton will be used.
 
 - **RUN**: This box is used to start, stop, and watch the preprocessing process. Same function as the **RUN box** in the **Predict** page.
 
