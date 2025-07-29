@@ -99,19 +99,19 @@ This box is used to set the text prompt for the model.
 - **Fluorescence indicator**: The fluorescence indicator. For example, "mEmerald (GFP)".
 - **INPUT**: The imaging condition of image image.
 
-**Microscope**: The microscope used for imaging. Such as, "wide-field microscope".
+    **Microscope**: The microscope used for imaging. Such as, "wide-field microscope".
 
-**Mircoscopy params**: The microscope parameters. For example, "with excitation numrical aperture (NA) of 1.35, detection namerical aperture (NA) of 1.3".
+    **Mircoscopy params**: The microscope parameters. For example, "with excitation numrical aperture (NA) of 1.35, detection namerical aperture (NA) of 1.3".
 
-**Pixel size**: The pixel size of the image. For example, "62.6 x 62.6 nm".
+    **Pixel size**: The pixel size of the image. For example, "62.6 x 62.6 nm".
 
 - **OUTPUT**: The imaging condition of the target image.
 
-**Microscope**: The microscope used for imaging. Such as, "linear structured illumination microscopy".
+    **Microscope**: The microscope used for imaging. Such as, "linear structured illumination microscopy".
 
-**Mircoscopy params**: The microscope parameters. For example, "with excitation numrical aperture (NA) of 1.35, detection namerical aperture (NA) of 1.3".
+    **Mircoscopy params**: The microscope parameters. For example, "with excitation numrical aperture (NA) of 1.35, detection namerical aperture (NA) of 1.3".
 
-**Pixel size**: The pixel size of the image. For example, "62.6 x 62.6 nm".
+    **Pixel size**: The pixel size of the image. For example, "62.6 x 62.6 nm".
 
 #### RUN box
 This box is used to start, stop, and watch the prediction process. Press the **run** button to start the prediction. Press the **stop** button to stop the prediction. The prediciton process will be shown in the progress bar.
@@ -135,7 +135,8 @@ This page is used for data preprocessing, including data patching and text embed
 
     **Normalization (high)**: The upper bound of the percentile-based normalization. Deault is `0.995`.
 
-- **RUN**: This box is used to start, stop, and watch the preprocessing process. Same function as the **RUN box** in the **Predict** page.
+- **RUN**
+    This box is used to start, stop, and watch the preprocessing process. Same function as the **RUN box** in the **Predict** page.
 
 #### EMBEDDING box
 - **PATH**
