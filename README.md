@@ -128,14 +128,12 @@ This page is used for data preprocessing, including data patching and text embed
 - **PARAMETERS**
 
     **Patch size**: The size of the patch. Deault is `64`, which is same as that used for FluoResFM pretraining.
-
     **Patch stride**: The stride of the patch. Deault is `64`, i.e., no overlap between patches, which is same as that used for FluoResFM pretraining.
-
     **Normalization (low)**: The lower bound of the percentile-based normalization. Deault is `0.03`.
-
     **Normalization (high)**: The upper bound of the percentile-based normalization. Deault is `0.995`.
 
 - **RUN**
+
     This box is used to start, stop, and watch the preprocessing process. Same function as the **RUN box** in the **Predict** page.
 
 #### EMBEDDING box
