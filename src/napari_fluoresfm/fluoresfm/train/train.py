@@ -410,7 +410,15 @@ def train(params_in, stop_flag=None, observer=None):
         )
 
         model.load_state_dict(state_dict)
-        start_iter = params["saved_checkpoint"].split(".")[-2].split("_")[-1]
+        try:
+            start_iter = (
+                params["saved_checkpoint"].split(".")[-2].split("_")[-1]
+            )
+        except Exception:  # noqa: BLE001
+            pout(
+                "[ERROR] Can not identify the iteration number (The file name should be epoch_#_iter_#.pt). Set to 0."
+            )
+            start_iter = 0
         start_iter = int(start_iter)
         del state_dict
     else:

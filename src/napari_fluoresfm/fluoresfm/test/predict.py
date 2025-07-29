@@ -289,9 +289,12 @@ def predict(params_in: dict, stop_flag=None, observer=None):
         pout(f"- File Name: {sample_filename}")
 
         # load low-resolution image (input) ------------------------------------
-        img_lr = utils_data.read_image(
-            os.path.join(params["path_input"], sample_filename)
-        )
+        img_path = os.path.join(params["path_input"], sample_filename)
+        if not os.path.exists(img_path):
+            pout(f"[ERROR] Image {sample_filename} does not exist.")
+            continue
+
+        img_lr = utils_data.read_image(img_path)
 
         # check the dimension of the image
         if len(img_lr.shape) == 2:
