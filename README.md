@@ -74,6 +74,8 @@ This plugin can be used for data preprocessing, model training, and model infere
 ![interface](src/napari_fluoresfm/images/interface.png)
 **Figure 1: The interface of the plugin.** **a** The label page uased for prediction of restored images. **b** The page for data preprocessing, including data patching and text embedding modules. **c** The page for model training.
 
+**Each page can be run independetly. You only need to input the data and model information as described below from top to bottom, and click `run` button to start. To train or fine-tune the mdoel, you need to preprocess the data firstly using the `Preprocess` page. The training and fine-tuning can both be done in `Train` page.**
+
 ### Predict
 This label page is used for prediction of restored images. You can select the pretrained model and the input image to predict the restored image.
 #### PATH box
