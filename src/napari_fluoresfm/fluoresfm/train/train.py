@@ -416,7 +416,7 @@ def train(params_in, stop_flag=None, observer=None):
             )
         except Exception:  # noqa: BLE001
             pout(
-                "[ERROR] Can not identify the iteration number (The file name should be epoch_#_iter_#.pt). Set to 0."
+                "[ERROR] Can not identify the iteration number (The file name should be epoch_#_iter_#.pt). Set the start iteration as 0."
             )
             start_iter = 0
         start_iter = int(start_iter)
