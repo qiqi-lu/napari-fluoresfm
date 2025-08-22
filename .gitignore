@@ -27,6 +27,7 @@ var/
 # files
 checkpoints/
 example/
+*.zip
 
 
 # PyInstaller

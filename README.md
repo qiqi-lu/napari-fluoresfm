@@ -11,7 +11,9 @@
 
 This is a `napari` plugin developed for using FluoResFM model in napari.
 FluoresFM is a deep learning-based foundation model for multi-task cross-distribution restoration of fluorescence microscopic images.
-The original code for FluoResFM algortihm is publicly accessable at https://github.com/qiqi-lu/FluoResFM.
+The original code for FluoResFM algortihm is publicly accessable at https://github.com/qiqi-lu/fluoResfm.
+
+The guideline video is availabel at https://www.bilibili.com/video/BV16JeFzuEof.
 
 FluoResFM's `napari` plugin is in early satge, therefore I highly encourage any feedback and suggestions.
 
