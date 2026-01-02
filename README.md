@@ -145,6 +145,18 @@ This page is used for data preprocessing, including data patching and text embed
 
 - **RUN**: This box is used to start, stop, and watch the preprocessing process. Same function as the **RUN box** in the **Predict** page.
 
+#### STRUCTURE PREDICTION box
+- **PATH**
+    - **Image Path**: The path of the image to be predicted. The image commonly should be in `.tif` format.
+    - **Database Path**: The path of the database for structure prediction. The database should be in `.npy` format.
+    - **Embedder Path**: The path of the text embedder model.
+    - **Device**: The device to run the model. Only support `cuda`.
+- **PARAMETERS**
+    - **Top k**: The top k similar images is used for determining the structure of the target image. Deault is `10`.
+    - **Num patch**: The number of patches cropped from the query image. Default is `1`.
+- **RUN**: This box is used to start the prediction process. (the stop button is disabled in this box)
+
+
 ### Train
 This page is used for model training.
 #### PATH box

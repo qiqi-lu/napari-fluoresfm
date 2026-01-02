@@ -268,6 +268,15 @@ def win2linux(win_path):
         return win_path
 
 
+def grayto255(x):
+    """
+    Convert the image to 255.
+    """
+    x = np.array(x)
+    x = x / x.max() * 255.0
+    return x.astype(np.uint8)
+
+
 def read_txt(path_txt):
     """
     Read txt file consisting of info in each line.
