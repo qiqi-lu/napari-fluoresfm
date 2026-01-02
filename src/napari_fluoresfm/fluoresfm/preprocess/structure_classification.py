@@ -1,3 +1,8 @@
+"""
+Fucntion sued to predict structure type from image.
+
+"""
+
 import os
 
 import numpy as np
