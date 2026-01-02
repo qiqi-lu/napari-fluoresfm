@@ -46,7 +46,8 @@ dependencies = [
     "torchinfo",
     "tensorboard",
     "transformers",
-    "openpyxl"
+    "openpyxl",
+    "pillow",
 ]
 
 [project.optional-dependencies]
