@@ -60,77 +60,77 @@ class BiomedCLIPTextEmbedder(nn.Module):
         return text_features
 
 
-# class BiomedCLIP(nn.Module):
-#     def __init__(
-#         self,
-#         path_json="checkpoints/clip//biomedclip/open_clip_config.json",
-#         path_bin="checkpoints/clip//biomedclip/open_clip_pytorch_model.bin",
-#         context_length=256,
-#         device=None,
-#     ):
-#         super().__init__()
-#         if device is None:
-#             device = torch.device("cpu")
+class BiomedCLIP(nn.Module):
+    def __init__(
+        self,
+        path_json="checkpoints/clip//biomedclip/open_clip_config.json",
+        path_bin="checkpoints/clip//biomedclip/open_clip_pytorch_model.bin",
+        context_length=256,
+        device=None,
+    ):
+        super().__init__()
+        if device is None:
+            device = torch.device("cpu")
 
-#         # Load the model and config files
-#         model_name = "biomedclip_local"
+        # Load the model and config files
+        model_name = "biomedclip_local"
 
-#         with open(path_json) as f:
-#             config = json.load(f)
-#             model_cfg = config["model_cfg"]
-#             preprocess_cfg = config["preprocess_cfg"]
+        with open(path_json) as f:
+            config = json.load(f)
+            model_cfg = config["model_cfg"]
+            preprocess_cfg = config["preprocess_cfg"]
 
-#         if (
-#             not model_name.startswith(HF_HUB_PREFIX)
-#             and model_name not in _MODEL_CONFIGS
-#             and config is not None
-#         ):
-#             _MODEL_CONFIGS[model_name] = model_cfg
+        if (
+            not model_name.startswith(HF_HUB_PREFIX)
+            and model_name not in _MODEL_CONFIGS
+            and config is not None
+        ):
+            _MODEL_CONFIGS[model_name] = model_cfg
 
-#         self.tokenizer = get_tokenizer(model_name)
+        self.tokenizer = get_tokenizer(model_name)
 
-#         self.model, _, self.preprocess = create_model_and_transforms(
-#             model_name=model_name,
-#             pretrained=path_bin,
-#             **{f"image_{k}": v for k, v in preprocess_cfg.items()},
-#         )
+        self.model, _, self.preprocess = create_model_and_transforms(
+            model_name=model_name,
+            pretrained=path_bin,
+            **{f"image_{k}": v for k, v in preprocess_cfg.items()},
+        )
 
-#         self.device = device
-#         self.context_length = context_length
+        self.device = device
+        self.context_length = context_length
 
-#         self.model.to(device)
-#         self.model.eval()
+        self.model.to(device)
+        self.model.eval()
 
-#     def image_embedding(self, image):
-#         # check shape of image
-#         if len(image.shape) == 3:
-#             image = image.unsqueeze(0)
-#         if image.shape[1] == 1:
-#             image = image.repeat(1, 3, 1, 1)
-#         image = image.to(self.device)
-#         with torch.no_grad():
-#             image_features = self.model.encode_image(image)
-#         return image_features
+    def image_embedding(self, image):
+        # check shape of image
+        if len(image.shape) == 3:
+            image = image.unsqueeze(0)
+        if image.shape[1] == 1:
+            image = image.repeat(1, 3, 1, 1)
+        image = image.to(self.device)
+        with torch.no_grad():
+            image_features = self.model.encode_image(image)
+        return image_features
 
-#     def text_embedding(self, texts):
-#         text_tokens = self.tokenizer(
-#             texts, context_length=self.context_length
-#         ).to(self.device)
-#         with torch.no_grad():
-#             text_features = self.model.encode_text(text_tokens)
-#         return text_features
+    def text_embedding(self, texts):
+        text_tokens = self.tokenizer(
+            texts, context_length=self.context_length
+        ).to(self.device)
+        with torch.no_grad():
+            text_features = self.model.encode_text(text_tokens)
+        return text_features
 
-#     def classification(self, image, texts):
-#         image_features = self.image_embedding(image)
-#         text_features = self.text_embedding(texts)
-#         logit_scale = 1
-#         logits = (
-#             (logit_scale * image_features @ text_features.t())
-#             .detach()
-#             .softmax(dim=-1)
-#         )
-#         sorted_indices = torch.argsort(logits, dim=-1, descending=True)
-#         return logits, sorted_indices
+    def classification(self, image, texts):
+        image_features = self.image_embedding(image)
+        text_features = self.text_embedding(texts)
+        logit_scale = 1
+        logits = (
+            (logit_scale * image_features @ text_features.t())
+            .detach()
+            .softmax(dim=-1)
+        )
+        sorted_indices = torch.argsort(logits, dim=-1, descending=True)
+        return logits, sorted_indices
 
 
 if __name__ == "__main__":
