@@ -47,9 +47,10 @@ from qtpy.QtWidgets import (
 import napari_fluoresfm.base_widgts as basew
 from napari_fluoresfm.fluoresfm.preprocess.embdedding import text_embdedding
 from napari_fluoresfm.fluoresfm.preprocess.patching import patch_image
-from napari_fluoresfm.fluoresfm.preprocess.structure_classification import (
-    classcification_image_retrieval,
-)
+
+# from napari_fluoresfm.fluoresfm.preprocess.structure_classification import (
+#     classcification_image_retrieval,
+# )
 from napari_fluoresfm.fluoresfm.test.predict import predict
 from napari_fluoresfm.fluoresfm.train.train import train
 
@@ -269,92 +270,92 @@ class Widget_patching(basew.WidgetBase):
         )
 
 
-class Worker_structure_predict(basew.WorkerBase):
-    def __init__(self, observer=None):
-        super().__init__(observer=observer)
+# class Worker_structure_predict(basew.WorkerBase):
+#     def __init__(self, observer=None):
+#         super().__init__(observer=observer)
 
-    def run(self):
-        self.observer.notify("Structure prediction start...")
-        try:
-            res = classcification_image_retrieval(
-                self.params_dict,
-                observer=self.observer,
-                stop_flag=self.stop_flag,
-            )
-        except Exception as e:  # noqa: BLE001
-            if isDebug:
-                raise e
-            self.observer.notify(traceback.format_exc())
-            res = 0
-        if res == 1:
-            self.observer.notify("Run Finished.")
-        else:
-            self.observer.notify("Run Failed.")
-        self.finish_signal.emit()
+#     def run(self):
+#         self.observer.notify("Structure prediction start...")
+#         try:
+#             res = classcification_image_retrieval(
+#                 self.params_dict,
+#                 observer=self.observer,
+#                 stop_flag=self.stop_flag,
+#             )
+#         except Exception as e:  # noqa: BLE001
+#             if isDebug:
+#                 raise e
+#             self.observer.notify(traceback.format_exc())
+#             res = 0
+#         if res == 1:
+#             self.observer.notify("Run Finished.")
+#         else:
+#             self.observer.notify("Run Failed.")
+#         self.finish_signal.emit()
 
 
-class Widget_structure_predict(basew.WidgetBase):
-    def __init__(self, logger=None):
-        super().__init__(logger=logger, title="STRUCTURE PREDICTION")
-        self._worker = Worker_structure_predict(self._observer)
-        grid_layout = QVBoxLayout()
-        self.setLayout(grid_layout)
-        # path -----------------------------------------------------------------
-        group_path = QGroupBox("PATH")
-        group_path_layout = QVBoxLayout()
-        group_path.setLayout(group_path_layout)
-        self.path_image_box = basew.FileSelectWidget(
-            "Image Path", "Select the a tif image"
-        )
-        self.path_database_box = basew.FileSelectWidget(
-            "Database Path", "Select the database file"
-        )
-        self.path_embedder_box = basew.DirectorySelectWidget(
-            "Embedder Path", "Select the folder of embedder"
-        )
-        self.device_box = basew.DeviceBox("Device")
-        group_path_layout.addWidget(self.path_image_box)
-        group_path_layout.addWidget(self.path_database_box)
-        group_path_layout.addWidget(self.path_embedder_box)
-        group_path_layout.addWidget(self.device_box)
-        # parameters -----------------------------------------------------------
-        group_params = QGroupBox("PARAMETERS")
-        group_params_layout = QVBoxLayout()
-        group_params.setLayout(group_params_layout)
-        self.top_k_box = basew.ParamsBox(
-            "Top k", spintype="spin", vmin=1, vmax=100, vinit=10, step=1
-        )
-        self.num_patch_box = basew.ParamsBox(
-            "Num patch", spintype="spin", vmin=1, vmax=100, vinit=1, step=1
-        )
+# class Widget_structure_predict(basew.WidgetBase):
+#     def __init__(self, logger=None):
+#         super().__init__(logger=logger, title="STRUCTURE PREDICTION")
+#         self._worker = Worker_structure_predict(self._observer)
+#         grid_layout = QVBoxLayout()
+#         self.setLayout(grid_layout)
+#         # path -----------------------------------------------------------------
+#         group_path = QGroupBox("PATH")
+#         group_path_layout = QVBoxLayout()
+#         group_path.setLayout(group_path_layout)
+#         self.path_image_box = basew.FileSelectWidget(
+#             "Image Path", "Select the a tif image"
+#         )
+#         self.path_database_box = basew.FileSelectWidget(
+#             "Database Path", "Select the database file"
+#         )
+#         self.path_embedder_box = basew.DirectorySelectWidget(
+#             "Embedder Path", "Select the folder of embedder"
+#         )
+#         self.device_box = basew.DeviceBox("Device")
+#         group_path_layout.addWidget(self.path_image_box)
+#         group_path_layout.addWidget(self.path_database_box)
+#         group_path_layout.addWidget(self.path_embedder_box)
+#         group_path_layout.addWidget(self.device_box)
+#         # parameters -----------------------------------------------------------
+#         group_params = QGroupBox("PARAMETERS")
+#         group_params_layout = QVBoxLayout()
+#         group_params.setLayout(group_params_layout)
+#         self.top_k_box = basew.ParamsBox(
+#             "Top k", spintype="spin", vmin=1, vmax=100, vinit=10, step=1
+#         )
+#         self.num_patch_box = basew.ParamsBox(
+#             "Num patch", spintype="spin", vmin=1, vmax=100, vinit=1, step=1
+#         )
 
-        group_params_layout.addWidget(self.top_k_box)
-        group_params_layout.addWidget(self.num_patch_box)
-        # run ------------------------------------------------------------------
-        group_run = QGroupBox("RUN")
-        group_run_layout = QGridLayout()
-        group_run.setLayout(group_run_layout)
-        group_run_layout.addWidget(self.run_btn, 0, 0, 1, 2)
-        group_run_layout.addWidget(self.stop_btn, 0, 2, 1, 1)
+#         group_params_layout.addWidget(self.top_k_box)
+#         group_params_layout.addWidget(self.num_patch_box)
+#         # run ------------------------------------------------------------------
+#         group_run = QGroupBox("RUN")
+#         group_run_layout = QGridLayout()
+#         group_run.setLayout(group_run_layout)
+#         group_run_layout.addWidget(self.run_btn, 0, 0, 1, 2)
+#         group_run_layout.addWidget(self.stop_btn, 0, 2, 1, 1)
 
-        # add to layout -------------------------------------------------------
-        grid_layout.addWidget(group_path)
-        grid_layout.addWidget(group_params)
-        grid_layout.addWidget(group_run)
+#         # add to layout -------------------------------------------------------
+#         grid_layout.addWidget(group_path)
+#         grid_layout.addWidget(group_params)
+#         grid_layout.addWidget(group_run)
 
-        self.connect()
+#         self.connect()
 
-    def get_params(self):
-        self.params.update(
-            {
-                "path_image": self.path_image_box.get_path(),
-                "path_database": self.path_database_box.get_path(),
-                "path_embedder": self.path_embedder_box.get_path(),
-                "device": self.device_box.get_value(),
-                "top_k": self.top_k_box.get_value(),
-                "num_patches": self.num_patch_box.get_value(),
-            }
-        )
+#     def get_params(self):
+#         self.params.update(
+#             {
+#                 "path_image": self.path_image_box.get_path(),
+#                 "path_database": self.path_database_box.get_path(),
+#                 "path_embedder": self.path_embedder_box.get_path(),
+#                 "device": self.device_box.get_value(),
+#                 "top_k": self.top_k_box.get_value(),
+#                 "num_patches": self.num_patch_box.get_value(),
+#             }
+#         )
 
 
 class Worker_embedding(basew.WorkerBase):
@@ -898,7 +899,7 @@ class Widget_train_predict(QWidget):
         page_preprocess.setLayout(page_preprocess_layout)
         page_preprocess_layout.addWidget(Widget_patching(page_logger))
         page_preprocess_layout.addWidget(Widget_embedding(page_logger))
-        page_preprocess_layout.addWidget(Widget_structure_predict(page_logger))
+        # page_preprocess_layout.addWidget(Widget_structure_predict(page_logger))
         page_preprocess_layout.addStretch()
 
         # train page -----------------------------------------------------------

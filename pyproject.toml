@@ -47,7 +47,6 @@ dependencies = [
     "tensorboard",
     "transformers",
     "openpyxl",
-    "pillow",
 ]
 
 [project.optional-dependencies]
